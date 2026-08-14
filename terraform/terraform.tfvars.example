@@ -1,0 +1,8 @@
+# Copy this to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to git (it's in .gitignore)
+
+aws_region       = "us-east-1"
+ssh_public_key   = "ssh-rsa AAAA... your-key-here"
+allowed_ssh_cidr = "203.0.113.42/32"  # Your public IP — check whatismyip.com
+alert_email      = "you@example.com"
+instance_type    = "t2.micro"

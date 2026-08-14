@@ -1,0 +1,45 @@
+# ==============================================================================
+# docker-compose.yml — Single-service stack for the homelab app
+#
+# Design decisions:
+#   - Binds to 127.0.0.1 only (not 0.0.0.0) — the app is NOT exposed to the
+#     internet. Access it via SSH tunnel or add a reverse proxy later.
+#   - "unless-stopped" restart policy ensures the container survives reboots
+#     but won't restart if you manually `docker compose down`.
+#   - Log rotation prevents Docker json logs from eating all disk space.
+# ==============================================================================
+
+services:
+  homelab-app:
+    build: ../app
+    container_name: homelab-app
+    restart: unless-stopped
+
+    ports:
+      # Bind to loopback ONLY — not reachable from outside the instance.
+      # To access remotely: ssh -L 5000:localhost:5000 ubuntu@<ip>
+      - "127.0.0.1:5000:5000"
+
+    environment:
+      - PORT=5000
+
+    # --- Log rotation ---
+    # Without this, Docker logs grow unbounded. 10MB × 3 files = 30MB max.
+    # The CloudWatch Agent reads these logs and ships them, so local retention
+    # is just a safety buffer.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # --- Container-level health check ---
+    # Docker marks the container as "unhealthy" if this fails, which shows up
+    # in `docker ps` and can trigger orchestration actions. Separate from the
+    # cron-based health_check.sh which logs to CSV.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s       # Check every 30 seconds
+      timeout: 5s         # Fail if no response within 5s
+      retries: 3          # Mark unhealthy after 3 consecutive failures
+      start_period: 10s   # Grace period for container startup
