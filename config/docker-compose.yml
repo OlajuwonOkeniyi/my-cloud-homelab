@@ -37,8 +37,15 @@ services:
     # Docker marks the container as "unhealthy" if this fails, which shows up
     # in `docker ps` and can trigger orchestration actions. Separate from the
     # cron-based health_check.sh which logs to CSV.
+    #
+    # This used to shell out to `curl`, which does not exist in python:3.11-slim.
+    # The probe therefore failed on every interval and the container sat
+    # permanently "unhealthy" while serving traffic perfectly well — a red
+    # status that means nothing is worse than no status at all. Probing with
+    # the interpreter that is guaranteed to be in the image needs no extra
+    # package and no larger image.
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health', timeout=3).status == 200 else 1)"]
       interval: 30s       # Check every 30 seconds
       timeout: 5s         # Fail if no response within 5s
       retries: 3          # Mark unhealthy after 3 consecutive failures

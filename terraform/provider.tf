@@ -21,7 +21,20 @@ terraform {
 }
 
 provider "aws" {
-  # Credentials come from environment variables or ~/.aws/credentials —
-  # never hardcoded here. Region is the only thing we configure explicitly.
-  region = var.aws_region
+  # Credentials are never hardcoded here. They are resolved from the named
+  # profile below, which `aws configure --profile <name>` writes to
+  # ~/.aws/credentials — a file outside this repository.
+  #
+  # Naming the profile explicitly matters. The AWS CLI can authenticate through
+  # sources the Terraform provider cannot read: `aws login` caches short-lived
+  # credentials under ~/.aws/login, and the Go SDK behind this provider does not
+  # look there. A working `aws sts get-caller-identity` therefore does NOT imply
+  # a working `terraform plan`, which fails with the misleading
+  # "no EC2 IMDS role found" because it has fallen through to asking the
+  # instance metadata service — on your laptop.
+  #
+  # Leave aws_profile empty to fall back to the default credential chain
+  # (environment variables, then the default profile).
+  region  = var.aws_region
+  profile = var.aws_profile != "" ? var.aws_profile : null
 }

@@ -123,6 +123,46 @@ resource "aws_instance" "homelab" {
   vpc_security_group_ids = [aws_security_group.homelab.id]
   iam_instance_profile   = aws_iam_instance_profile.homelab.name
 
+  # --- First-boot bootstrap ---
+  # Previously nothing put the project on the instance: there was no user_data,
+  # no provisioner and no file copy anywhere in this config, yet the README told
+  # you to run `sudo bash /tmp/setup.sh` after SSH-ing in. That file never
+  # existed, so the documented path could not work. The instance now fetches its
+  # own configuration on first boot and runs the bootstrap unattended.
+  #
+  # Cloning over HTTPS from a public repo keeps this dependency-free: no S3
+  # bucket, no artefact upload, no secret needed on the instance. If the repo is
+  # ever made private, replace this with an S3 object read via the instance role.
+  #
+  # Note: user_data runs ONCE, at first boot. Editing it will not re-run on an
+  # existing instance — Terraform shows the diff but leaves the instance alone.
+  # Set user_data_replace_on_change = true if you would rather every bootstrap
+  # edit rebuild the box; left off here so an innocuous comment change cannot
+  # destroy a running homelab.
+  user_data = <<-BOOTSTRAP
+    #!/usr/bin/env bash
+    # -x so every command lands in the log; this is the only record of what
+    # happened before you can SSH in.
+    set -euxo pipefail
+
+    # No TTY exists during cloud-init. Without this, an apt prompt about a
+    # changed config file blocks forever and the instance boots half-built.
+    export DEBIAN_FRONTEND=noninteractive
+
+    exec > >(tee -a /var/log/homelab-bootstrap.log) 2>&1
+    echo "[bootstrap] started $(date -Is)"
+
+    apt-get update -qq
+    apt-get install -y -qq git
+
+    # setup.sh expects the project at this exact path; see its SECTION 4.
+    rm -rf /tmp/my-cloud-homelab
+    git clone --depth 1 --branch ${var.repo_branch} ${var.repo_url} /tmp/my-cloud-homelab
+
+    echo "[bootstrap] handing over to setup.sh $(date -Is)"
+    bash /tmp/my-cloud-homelab/scripts/setup.sh
+  BOOTSTRAP
+
   root_block_device {
     volume_size = 20        # 20GB is comfortable for Docker images + logs
     volume_type = "gp3"    # gp3 is cheaper than gp2 with better baseline IOPS

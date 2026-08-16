@@ -27,3 +27,13 @@ variable "vpc_id" {
   description = "VPC ID for the security group"
   type        = string
 }
+
+variable "repo_url" {
+  description = "Public HTTPS clone URL for the bootstrap"
+  type        = string
+}
+
+variable "repo_branch" {
+  description = "Branch to clone during bootstrap"
+  type        = string
+}

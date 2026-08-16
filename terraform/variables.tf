@@ -15,6 +15,12 @@ variable "aws_region" {
   default = "us-east-1"
 }
 
+variable "aws_profile" {
+  description = "Named AWS CLI profile Terraform authenticates with. Empty = default credential chain."
+  type        = string
+  default     = ""
+}
+
 variable "project_name" {
   description = "Name prefix for all resources — keeps things identifiable in the AWS console"
   type        = string
@@ -39,10 +45,31 @@ variable "alert_email" {
   type        = string
 }
 
-variable "instance_type" {
-  description = "EC2 instance type — t2.micro is free-tier eligible"
+variable "repo_url" {
+  description = "Public HTTPS clone URL the instance pulls its own config from on first boot"
   type        = string
-  # t2.micro: 1 vCPU, 1GB RAM. Enough for a containerized Flask app.
-  # Bump to t3.small if you start running multiple containers.
-  default = "t2.micro"
+  default     = "https://github.com/OlajuwonOkeniyi/my-cloud-homelab.git"
+}
+
+variable "repo_branch" {
+  description = "Branch to clone during bootstrap"
+  type        = string
+  default     = "main"
+}
+
+variable "instance_type" {
+  description = "EC2 instance type — check free-tier eligibility for YOUR account"
+  type        = string
+  # AWS changed the free tier for accounts created on or after 2025-07-15:
+  # the 12-month tier was replaced by $100 of credits over 6 months, and the
+  # eligible types changed. t2.micro is NOT on the new list; t3.micro is.
+  # Confirm for your own account with:
+  #   aws ec2 describe-instance-types \
+  #     --filters Name=free-tier-eligible,Values=true \
+  #     --query "InstanceTypes[*].[InstanceType]" --output text
+  #
+  # Do NOT use t4g.micro without also changing the AMI filter in
+  # modules/compute/main.tf — t4g is ARM (arm64) and the filter matches amd64,
+  # so the apply would fail to resolve an image.
+  default = "t3.micro"
 }

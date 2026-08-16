@@ -139,9 +139,27 @@ EOF
 # If you prefer git pull, clone directly to $HOMELAB_DIR instead.
 log "Setting up application..."
 mkdir -p "$HOMELAB_DIR"
-cp -r /tmp/my-cloud-homelab/* "$HOMELAB_DIR/" 2>/dev/null || {
-    log "Note: Copy project files to /tmp/my-cloud-homelab before running, or clone the repo to $HOMELAB_DIR"
-}
+
+# The copy used to fail softly and then the script carried on to reference
+# files that were never copied, dying five lines later on a confusing
+# "no such file" from cp. A missing project is a fatal precondition, so say so
+# here rather than letting set -e surface it somewhere less obvious.
+if [ ! -d /tmp/my-cloud-homelab ]; then
+    log "FATAL: /tmp/my-cloud-homelab not found."
+    log "       The project must be on this instance before setup.sh runs."
+    log "       Terraform user_data clones it there automatically; if you are"
+    log "       running this by hand, scp the project to that path first."
+    exit 1
+fi
+
+cp -r /tmp/my-cloud-homelab/* "$HOMELAB_DIR/"
+
+for required in config/homelab.service scripts/health_check.sh; do
+    if [ ! -f "$HOMELAB_DIR/$required" ]; then
+        log "FATAL: expected $required in the project but it is missing."
+        exit 1
+    fi
+done
 
 # Install the systemd service that manages the Docker Compose lifecycle
 cp "$HOMELAB_DIR/config/homelab.service" /etc/systemd/system/

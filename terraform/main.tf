@@ -24,6 +24,8 @@ module "compute" {
   instance_type    = var.instance_type
   ssh_public_key   = var.ssh_public_key
   allowed_ssh_cidr = var.allowed_ssh_cidr
+  repo_url         = var.repo_url
+  repo_branch      = var.repo_branch
 
   # These outputs flow from networking → compute, creating an implicit dependency.
   # Terraform knows to create the VPC/subnet before the EC2 instance.

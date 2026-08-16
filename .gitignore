@@ -3,7 +3,16 @@ terraform/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/*.tfvars
-terraform/.terraform.lock.hcl
+
+# Saved plan files. `terraform plan -out=FILE` writes the resolved plan, which
+# embeds variable values — including anything marked sensitive. Never commit one.
+terraform/*.tfplan
+
+# NOTE: .terraform.lock.hcl is deliberately NOT ignored.
+# HashiCorp's guidance is to commit it: it pins the exact provider versions and
+# their checksums, so a clone gets byte-identical providers instead of whatever
+# `~> 5.0` happens to resolve to that week. Ignoring it defeats the version
+# pinning in provider.tf. Terraform prints this advice on every `init`.
 
 # Keys and secrets
 *.pem
