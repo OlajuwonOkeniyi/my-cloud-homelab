@@ -28,11 +28,23 @@ if [[ ! -f "$LOG_FILE" ]]; then
 fi
 
 # --- Probe the health endpoint ---
-# Capture HTTP status code; discard response body. If curl itself fails
-# (e.g., connection refused), we get "000" as the status code.
+# Capture the HTTP status code; discard the response body. When the connection
+# never completes, curl writes 000 for %{http_code} on its own.
+#
+# There is deliberately no `|| echo "000"` here. curl writes 000 AND exits
+# non-zero in that case, so the fallback appended a second 000 to curl's own and
+# every failed check recorded the status as 000000 — the one value this file
+# exists to capture was the one value it got wrong, and only on the runs that
+# mattered. Reproduced against a closed port before and after the change.
 start_time=$(date +%s%N)
-http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$ENDPOINT" 2>/dev/null || echo "000")
+http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" "$ENDPOINT" 2>/dev/null)
 end_time=$(date +%s%N)
+
+# If curl produced nothing at all — killed, or not installed — there is no code
+# to record, so supply the same 000 it would have written.
+if [[ -z "$http_code" ]]; then
+    http_code="000"
+fi
 
 # --- Calculate response time ---
 # Nanosecond precision from date, converted to milliseconds for readability
