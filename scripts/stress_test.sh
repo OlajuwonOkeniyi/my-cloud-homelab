@@ -20,6 +20,11 @@
 #
 # IMPORTANT: This WILL make your instance unresponsive during the test.
 # SSH sessions may lag. That's expected — it's a stress test.
+#
+# COST: the compute module pins cpu_credits = "standard" precisely because of
+# this script. T3 instances default to "unlimited", where exhausting your CPU
+# credits is billed rather than throttled — the default would turn this test
+# into a charge. If you change that setting, do not run this.
 # ==============================================================================
 set -euo pipefail
 
@@ -40,21 +45,36 @@ echo ""
 # One `yes` process per core ensures 100% utilization across all CPUs.
 # We track PIDs so we can clean them up when the duration expires.
 pids=()
+
+# Clean up on ANY exit, not just the happy path.
+#
+# This matters more than it looks. A non-interactive shell sets SIGINT and
+# SIGQUIT to ignore for commands it starts asynchronously — that is POSIX, not a
+# bash quirk — so the `yes` workers below do not die on Ctrl+C. Without this
+# trap, the banner's own advice to "press Ctrl+C to stop early" killed the
+# script and left every worker running, saturating the CPU with nothing left to
+# stop it. Verified by sending SIGINT to the process group: the script exits,
+# the workers survive. SIGTERM is not ignored, which is what the trap sends.
+cleanup() {
+    local pid
+    for pid in "${pids[@]:-}"; do
+        kill -TERM "$pid" 2>/dev/null || true
+    done
+}
+trap cleanup EXIT INT TERM
+
 for ((i = 0; i < NUM_CORES; i++)); do
     yes > /dev/null 2>&1 &
     pids+=($!)
 done
 
 echo "Burning CPU on PIDs: ${pids[*]}"
+echo "If this is interrupted, confirm nothing is left: pgrep -x yes"
 
 # --- Wait, then clean up ---
-# sleep for the duration, then kill all the workers.
-# `|| true` handles the case where a process already exited (e.g., OOM-killed).
+# The EXIT trap does the killing, so there is exactly one cleanup path whether
+# this finishes, is interrupted, or fails.
 sleep "$DURATION"
-
-for pid in "${pids[@]}"; do
-    kill "$pid" 2>/dev/null || true
-done
 
 echo ""
 echo "Stress test complete at: $(date)"
