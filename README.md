@@ -1,120 +1,241 @@
 # My Cloud Homelab
 
-This is my personal cloud dev server. I set it up because I wanted somewhere reliable to run scripts and host small projects without worrying about my laptop being open.
+A single-instance personal server on AWS, defined entirely in Terraform. One
+`terraform apply` builds the network, the instance, the monitoring and the
+alerting, and the instance configures itself on first boot.
 
-The whole thing runs on a single EC2 instance with monitoring, auto-recovery, and alerting baked in. It's not fancy — it's just solid. I've had it running for weeks without touching it, which is exactly the point.
+It runs a small Flask service in Docker, kept alive by systemd, with CloudWatch
+watching CPU and instance health and SNS emailing me when either goes wrong.
 
-## Tech Stack
+**Built and first deployed on 16 August 2026.** Everything below describes what
+this code does and what was observed running it. There are no illustrative
+numbers in this README — where a figure would be useful but has not been
+measured over a meaningful period, it is left out rather than estimated.
 
-| Layer | Tool | Why |
-|-------|------|-----|
-| Infrastructure | Terraform | Repeatable deploys, easy teardown when I'm not using it |
-| Compute | AWS EC2 (t2.micro) | Free tier eligible, enough for personal stuff |
-| OS | Ubuntu 22.04 LTS | Stable, familiar, good package support |
-| Application | Python Flask in Docker | Simple HTTP service I use as a scratchpad API |
-| Process Mgmt | systemd | Auto-restarts the container if it dies |
-| Monitoring | CloudWatch + SNS | Alerts me before things break |
-| Logs | CloudWatch Logs + local CSV | Centralized logs + a quick local audit trail |
+---
 
-## Quick Start
+## What gets created
+
+`terraform apply` produces 18 resources in one region:
+
+| Layer | Resources |
+|---|---|
+| **Network** | VPC `10.0.0.0/16`, public subnet `10.0.1.0/24`, internet gateway, route table + association |
+| **Compute** | EC2 instance (Ubuntu 22.04, `t3.micro`), key pair, security group, IAM role + instance profile |
+| **Monitoring** | 2 CloudWatch alarms, 1 dashboard, 2 log groups, SNS topic + email subscription |
+
+No NAT gateway, no load balancer, no auto-scaling, no Elastic IP. Each of those
+would add cost or complexity this does not need.
+
+## Design decisions
+
+**SSH is the only inbound port**, restricted to a single `/32`. The Flask app
+binds to `127.0.0.1` inside the instance and is never exposed publicly; reaching
+it means an SSH tunnel. That removes an entire category of problem — the app
+does not have to be production-hardened because it is not reachable.
+
+**No Elastic IP.** The public address changes if the instance is stopped and
+started. For something that runs continuously or is destroyed entirely, that is
+an acceptable trade for one less billable resource.
+
+**Burst credits set to `standard`.** T3 instances default to `unlimited` mode,
+which bills surplus credits rather than throttling when sustained CPU exceeds
+the baseline. Since this repository includes a script that deliberately
+saturates the CPU, the default would turn a monitoring test into a charge.
+Throttling is the correct failure mode for a homelab.
+
+**Root volume encrypted, 20 GB `gp3`, deleted on termination.** Encryption at
+rest costs nothing on modern instance types. `delete_on_termination` means
+`terraform destroy` leaves no orphaned volume quietly billing.
+
+## Prerequisites
+
+- Terraform ≥ 1.5
+- An AWS account and an **IAM user with programmatic access**, configured as a
+  named CLI profile
+- An SSH key pair you generated yourself
+
+**A working `aws` CLI is not sufficient.** The CLI can authenticate through
+sources the Terraform provider cannot read — `aws login` caches short-lived
+credentials that the AWS SDK behind Terraform does not look for. A successful
+`aws sts get-caller-identity` can sit alongside a `terraform plan` that fails
+with `no EC2 IMDS role found`, which reads as though Terraform expected to be
+running on an EC2 instance. If you hit that, the credentials are the cause.
+
+**Check which instance types are free-tier eligible for your account** before
+choosing one. AWS replaced the twelve-month free tier for accounts created on
+or after 15 July 2025 with a credit-based plan, and changed the eligible list:
 
 ```bash
-# Clone and configure
-git clone https://github.com/yourusername/my-cloud-homelab.git
-cd my-cloud-homelab/terraform
+aws ec2 describe-instance-types \
+  --filters Name=free-tier-eligible,Values=true \
+  --query "InstanceTypes[*].[InstanceType]" --output text
+```
 
-# Set your variables (or use a .tfvars file)
+`t2.micro` is not on the new list. `t4g` variants are, but they are ARM and the
+AMI filter in `modules/compute` matches `amd64`, so selecting one fails to
+resolve an image.
+
+## Deploying
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/homelab -C homelab
+
+cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your SSH key, alert email, etc.
+# fill in: aws_profile, ssh_public_key, allowed_ssh_cidr, alert_email
 
-# Deploy
 terraform init
-terraform plan
-terraform apply
-
-# After the instance is up, SSH in and run the bootstrap
-ssh -i ~/.ssh/your-key.pem ubuntu@<public_ip>
-sudo bash /tmp/setup.sh
+terraform plan -out=homelab.tfplan
+terraform apply homelab.tfplan
 ```
 
-## Architecture
+`allowed_ssh_cidr` is your public address as a `/32` — `curl https://checkip.amazonaws.com`.
+Home connections rotate this; if SSH stops working later, that is the first
+thing to check.
 
-Everything lives on one EC2 instance inside a custom VPC:
+**Apply finishing does not mean the homelab is ready.** It means AWS created
+the instance. The first-boot bootstrap then runs for several minutes —
+system upgrade, Docker, the CloudWatch agent, the image build — and ends with a
+reboot. Expect SSH to drop partway through; that is the script working.
 
-- **VPC** with a public subnet and internet gateway — nothing complex, just clean isolation from default VPC clutter.
-- **Security Group** locked to SSH (port 22) from my IP only. The Flask app listens on localhost inside the instance; I access it over an SSH tunnel when I need to.
-- **EC2 instance** running Ubuntu 22.04. Docker hosts the Flask app, systemd keeps it alive, and the CloudWatch agent ships logs out.
-- **CloudWatch** monitors CPU, disk, memory (via the agent), and container health. If CPU stays above 80% for 5 minutes or the health check fails, SNS sends me an email.
-- **CloudWatch Logs** stores application logs and system-level logs from the instance, so I can debug without SSH-ing in.
+**Confirm the SNS subscription.** AWS emails a confirmation link on first apply.
+Until it is clicked, every alarm fires into nothing, silently.
 
-No load balancer, no auto-scaling, no multi-AZ. It's a homelab — I'd rather keep it simple and actually understand every piece.
+```bash
+ssh -i ~/.ssh/homelab ubuntu@$(terraform output -raw instance_public_ip)
 
-## Key Metrics
-
-| Metric | Value |
-|--------|-------|
-| Uptime (last 14 days) | 99.7% |
-| Avg response time | 12ms |
-| Monthly cost | ~$0 (free tier) |
-| Time to redeploy from scratch | ~8 minutes |
-| Longest unplanned outage | 23 minutes (my fault — see RECOVERY.md) |
-
-## Project Structure
-
-```
-my-cloud-homelab/
-├── README.md
-├── LICENSE
-├── .gitignore
-├── terraform/           # All infrastructure as code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── provider.tf
-│   └── modules/
-│       ├── networking/  # VPC, subnet, IGW, route table
-│       ├── compute/     # EC2, security group, key pair
-│       └── monitoring/  # CloudWatch alarms, dashboard, SNS, log groups
-├── app/                 # The Flask application
-│   ├── server.py
-│   ├── requirements.txt
-│   └── Dockerfile
-├── config/
-│   ├── docker-compose.yml
-│   └── homelab.service  # systemd unit for the container
-├── scripts/
-│   ├── setup.sh         # EC2 bootstrap (runs once after launch)
-│   ├── health_check.sh  # Cron job — pings app, logs result
-│   └── stress_test.sh   # Hammers CPU to trigger CloudWatch alarm
-├── docs/
-│   ├── SETUP_NOTES.md   # What I learned setting this up
-│   └── RECOVERY.md      # Incident runbook
-└── logs/
-    └── uptime_sample.csv  # 14 days of health check data
+cloud-init status --long
+sudo tail -30 /var/log/homelab-bootstrap.log
+docker ps
+curl -s localhost:5000/health
 ```
 
-## How Monitoring Works
+To reach the app from a laptop:
 
-Three layers, from cheapest to most informative:
+```bash
+ssh -i ~/.ssh/homelab -L 5000:127.0.0.1:5000 ubuntu@<public_ip>
+# then open http://localhost:5000
+```
 
-1. **Local health check** — A bash script runs every 5 minutes via cron. It curls the Flask app's `/health` endpoint and appends the result (timestamp, HTTP status, response time) to a CSV. Dead simple, works even if CloudWatch is having a bad day.
+## Tearing down
 
-2. **CloudWatch Metrics** — The CloudWatch agent on the instance reports memory and disk usage (EC2 doesn't give you those natively). Combined with the built-in CPU metric, I have a solid picture of resource usage.
+```bash
+cd terraform
+terraform destroy
+```
 
-3. **CloudWatch Alarms + SNS** — Two alarms:
-   - CPU > 80% sustained for 5 minutes → email alert
-   - Health check failures (StatusCheckFailed) → email alert
-   
-   I also have a CloudWatch dashboard that shows CPU, memory, disk, and network in one view. Mostly I check it when I'm bored, but it's been useful a couple times for spotting slow memory leaks.
+Nothing is created outside Terraform's state, so nothing is left behind. The app
+holds no persistent data — a rebuild is the intended way to update the instance,
+not a repair.
 
-## Lessons Learned
+## How it is monitored
 
-- **systemd is underrated.** I spent way too long looking at container orchestrators before realizing that for a single container on a single host, a systemd unit with `Restart=always` is all you need.
-- **Don't skip the health check.** I had a silent failure early on where the container was "running" but the app inside had crashed. The cron health check caught it within 5 minutes. CloudWatch would have caught it too, but having local evidence made debugging faster.
-- **Terraform modules are worth it even for small projects.** My first version was one giant `main.tf` and it was miserable to work with. Splitting into networking/compute/monitoring made each piece easy to reason about.
-- **Free tier is generous but has edges.** CloudWatch custom metrics cost money if you're not careful. I keep it to 3 custom metrics to stay in the free tier.
-- **SSH-only security groups are surprisingly freeing.** No public ports means I don't worry about the app being production-hardened. I just tunnel in when I need access.
+Three layers, cheapest first.
 
-## License
+**A cron health check** runs every five minutes, curls `/health`, and appends
+timestamp, status code, response time and a healthy flag to
+`/opt/homelab/logs/uptime.csv`. It rotates itself at 10,000 rows. This is the
+only record that survives CloudWatch being unavailable, and it is the source of
+any uptime figure this project ever quotes. **It is not committed to this
+repository** — the data belongs to a running instance, not to source control.
+
+**The CloudWatch agent** reports memory and disk usage, which EC2 does not
+publish natively. It pushes to the `CWAgent` namespace using the instance's IAM
+role, so no credentials live on the box.
+
+**Two alarms, both wired to SNS email.** CPU above 80% averaged over five
+consecutive minutes, and any EC2 status check failure. The CPU alarm notifies on
+recovery as well as breach; the status check alarm does not, because a failed
+status check generally needs a human either way.
+
+A dashboard shows CPU, memory, disk and network in one view. The memory and disk
+widgets stay empty until the CloudWatch agent has been running for a few
+minutes — they come from the agent, not from EC2.
+
+## Repository layout
+
+```
+terraform/            infrastructure
+├── main.tf           module wiring
+├── provider.tf       AWS provider and profile
+├── variables.tf      inputs
+├── outputs.tf        IP, instance ID, dashboard URL, SSH command
+└── modules/
+    ├── networking/   VPC, subnet, IGW, routing
+    ├── compute/      EC2, security group, IAM, first-boot bootstrap
+    └── monitoring/   alarms, dashboard, SNS, log groups
+
+app/                  Flask service, requirements, Dockerfile
+config/
+├── docker-compose.yml
+└── homelab.service   systemd unit for the compose stack
+scripts/
+├── setup.sh          first-boot bootstrap, invoked by user_data
+├── health_check.sh   cron health check
+└── stress_test.sh    saturates CPU to prove the alarm path works
+docs/
+├── SETUP_NOTES.md    what deploying it actually taught me
+└── RECOVERY.md       runbook
+```
+
+## What deploying it for the first time surfaced
+
+The infrastructure code was written before it had ever been applied. Running it
+found five defects, four of which would have stopped anyone else using it.
+
+**Nothing put the bootstrap script on the instance.** The README instructed you
+to SSH in and run `sudo bash /tmp/setup.sh`, but there was no `user_data`, no
+provisioner and no file copy anywhere in the Terraform. That file never existed.
+The documented setup path could not work. The instance now clones this
+repository on first boot and runs the bootstrap unattended.
+
+**The bootstrap crashed instead of explaining.** With its project files absent,
+`setup.sh` logged a helpful note and then died five lines later under `set -e`,
+on a `cp` of a file that had never been copied. Missing files are now a checked
+precondition with a message that says what to do.
+
+**The chosen instance type was not free-tier eligible.** `t2.micro` is absent
+from the eligible list for accounts created after July 2025, so the README's
+claim of running at no cost was wrong for any new account.
+
+**The container health check could never pass.** It probed with `curl -f`
+against an image built from `python:3.11-slim`, which contains no `curl`. Every
+probe failed. The deployed instance reported `Up 8 hours (unhealthy)` while the
+endpoint returned `200` throughout — a red status carrying no information, which
+is worse than no status at all. It now probes with the interpreter already in
+the image.
+
+**The printed SSH command pointed at a file that does not exist.** The output
+suggested `~/.ssh/homelab.pem`; `.pem` is the extension AWS uses for keys it
+generates, not for one you import.
+
+A sixth is operational rather than a defect: `/tmp` is cleared on reboot and the
+bootstrap ends with one, so the clone at `/tmp/my-cloud-homelab` deletes itself
+minutes after first boot. `/opt/homelab` is a copy, not a checkout. There is no
+git working tree on the instance, so the instance cannot pull updates — a
+rebuild is the update mechanism, which is defensible but was nowhere documented.
+
+## Two more found by reading the scripts afterwards
+
+Both are in the shell, both are the same shape: code that looks correct and
+fails only in the situation it was written for.
+
+**The health check logged the wrong status for every failure.** The probe ended
+in `curl ... || echo "000"`. When a connection fails, `curl -w '%{http_code}'`
+writes `000` *and* exits non-zero, so the fallback appended a second `000` to
+curl's own and the CSV recorded `000000`. Successful checks were fine. The one
+column the file exists to capture was wrong on exactly the rows that mattered,
+and the runbook told you to look for `000`, which never appeared. Reproduced
+against a closed port before and after the fix.
+
+**Interrupting the stress test left the CPU pinned.** The banner says "press
+Ctrl+C to stop early". A non-interactive shell sets SIGINT to ignore for
+commands it starts asynchronously, so the `yes` workers did not die with the
+script — following the instruction on screen killed the only thing that knew
+their PIDs and left them running. Confirmed by signalling the process group.
+Cleanup now runs from an `EXIT` trap sending SIGTERM, which is not ignored.
+
+## Licence
 
 MIT — see [LICENSE](LICENSE).

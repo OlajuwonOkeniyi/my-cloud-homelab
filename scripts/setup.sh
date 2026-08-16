@@ -2,8 +2,10 @@
 # ==============================================================================
 # setup.sh — One-shot bootstrap for a fresh EC2 instance
 #
-# Run this ONCE after first SSH into the new instance:
-#     sudo bash setup.sh
+# This is invoked automatically. The instance's user_data (see
+# terraform/modules/compute/main.tf) clones this repository to
+# /tmp/my-cloud-homelab on first boot and then runs this script as root.
+# There is no manual step; you should not need to run it by hand.
 #
 # What it does (in order):
 #   1. Updates all system packages
@@ -15,13 +17,20 @@
 #   7. Enables unattended security updates
 #   8. Reboots to apply kernel updates and group changes
 #
-# Prerequisites:
-#   - Project files must be in /tmp/my-cloud-homelab (scp them before running)
-#     OR clone the repo directly to /opt/homelab
-#   - Instance must have the IAM role attached (done by Terraform)
+# Prerequisites (both satisfied by Terraform):
+#   - The repository checkout must be at /tmp/my-cloud-homelab. This is a hard
+#     precondition, checked below — an earlier version logged a note and
+#     continued, then died five lines later under `set -e` on a copy of a file
+#     that had never arrived.
+#   - The instance must have its IAM instance profile attached, or the
+#     CloudWatch agent will start cleanly and push nothing.
 #
-# This script is idempotent-ish: running it twice won't break anything,
-# but it's designed as a one-time bootstrap, not a config management tool.
+# Logs to /var/log/homelab-setup.log. user_data logs separately to
+# /var/log/homelab-bootstrap.log; check that one first if this never started.
+#
+# Re-running it is safe but it is a one-time bootstrap, not config management.
+# Note that /tmp is cleared on reboot and this script ends with one, so the
+# checkout it ran from will not be there afterwards.
 # ==============================================================================
 set -euo pipefail
 

@@ -32,9 +32,10 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 
-# Logs (keep the sample, ignore real runtime logs)
+# Runtime logs. The health check writes real data to /opt/homelab/logs/uptime.csv
+# on the instance; it is not committed. There is deliberately no sample file --
+# the previous one contained 14 days of invented measurements.
 logs/*.csv
-!logs/uptime_sample.csv
 
 # Editor
 *.swp
