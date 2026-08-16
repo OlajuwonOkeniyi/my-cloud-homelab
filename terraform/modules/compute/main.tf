@@ -163,6 +163,23 @@ resource "aws_instance" "homelab" {
     bash /tmp/my-cloud-homelab/scripts/setup.sh
   BOOTSTRAP
 
+  # --- Burst credit mode ---
+  # T3 launches in "unlimited" mode by default; T2 launches in "standard".
+  # Moving from t2.micro to t3.micro for free-tier eligibility therefore also
+  # changed the billing behaviour: under unlimited, sustained CPU above the
+  # baseline over a rolling 24 hours bills surplus credits at a per-vCPU-hour
+  # rate instead of throttling. This repository ships scripts/stress_test.sh,
+  # which saturates every core for six minutes by design in order to trip the
+  # CloudWatch alarm — precisely the workload that generates surplus credits.
+  #
+  # "standard" restores the t2 behaviour: when credits run out the instance is
+  # throttled to its baseline rather than billed. For a homelab whose stated
+  # goal is to cost nothing, a slow instance is the correct failure mode and a
+  # surprise invoice is not.
+  credit_specification {
+    cpu_credits = "standard"
+  }
+
   root_block_device {
     volume_size = 20        # 20GB is comfortable for Docker images + logs
     volume_type = "gp3"    # gp3 is cheaper than gp2 with better baseline IOPS

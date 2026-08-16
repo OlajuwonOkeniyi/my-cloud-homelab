@@ -1,8 +1,26 @@
-# Copy this to terraform.tfvars and fill in your values
-# DO NOT commit terraform.tfvars to git (it's in .gitignore)
+# Copy this to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored — do not commit it.
 
-aws_region       = "us-east-1"
-ssh_public_key   = "ssh-rsa AAAA... your-key-here"
-allowed_ssh_cidr = "203.0.113.42/32"  # Your public IP — check whatismyip.com
-alert_email      = "you@example.com"
-instance_type    = "t2.micro"
+aws_region = "us-east-1"
+
+# Named profile from ~/.aws/credentials, backed by an IAM user access key.
+# Leave as "" to use the default credential chain. Note that credentials cached
+# by `aws login` are NOT readable by Terraform — see docs/SETUP_NOTES.md.
+aws_profile = "terraform-homelab"
+
+# The public half of a key you generated: ssh-keygen -t ed25519 -f ~/.ssh/homelab
+ssh_public_key = "ssh-ed25519 AAAA... your-key-here"
+
+# Your public IP as a /32: curl https://checkip.amazonaws.com
+allowed_ssh_cidr = "203.0.113.42/32"
+
+# SNS sends a confirmation link here on first apply. Until it is clicked,
+# alarms fire into nothing.
+alert_email = "you@example.com"
+
+# t2.micro is NOT free-tier eligible for accounts created on or after
+# 2025-07-15. Confirm the list for your own account:
+#   aws ec2 describe-instance-types \
+#     --filters Name=free-tier-eligible,Values=true \
+#     --query "InstanceTypes[*].[InstanceType]" --output text
+instance_type = "t3.micro"

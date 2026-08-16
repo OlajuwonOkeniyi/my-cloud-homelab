@@ -1,8 +1,12 @@
 # ==============================================================================
 # Dockerfile — Containerized Flask app for the homelab
 #
-# Uses python:3.11-slim as the base (Debian Bookworm minimal — ~120MB).
-# Full python:3.11 adds ~600MB of build tools we don't need at runtime.
+# Uses python:3.11-slim as the base (Debian Bookworm minimal).
+# Full python:3.11 adds several hundred MB of build tools not needed at runtime.
+#
+# slim means slim: there is no curl and no wget in this image. The Compose
+# healthcheck probes with `python -c` and urllib for exactly that reason — an
+# earlier curl-based probe failed every time while the app served 200s.
 #
 # Build context: the app/ directory (set via docker-compose.yml `build: ../app`)
 # ==============================================================================
@@ -25,6 +29,7 @@ EXPOSE 5000
 # --- Production server ---
 # gunicorn replaces Flask's built-in dev server:
 #   - 2 workers: enough for a homelab with <10 concurrent users. Formula is
-#     typically (2 * CPU cores + 1), but on t2.micro with 1 core, 2 is fine.
+#     typically (2 * CPU cores + 1), but on t3.micro memory (1 GiB) is the
+#     binding constraint, not vCPU count.
 #   - --access-logfile -: prints access logs to stdout → captured by Docker → shipped to CloudWatch
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--access-logfile", "-", "server:app"]
