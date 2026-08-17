@@ -140,6 +140,13 @@ only record that survives CloudWatch being unavailable, and it is the source of
 any uptime figure this project ever quotes. **It is not committed to this
 repository** — the data belongs to a running instance, not to source control.
 
+What it has recorded so far, stated with its window rather than dressed up as a
+service level: **228 checks over the first 19 hours after deployment, none
+failed, mean response time 19.9 ms.** The 138 ms maximum is the first check of
+all, before anything was warm. Nineteen hours is not long enough to quote an
+uptime percentage from, so there isn't one here — the figure to watch is whether
+the count of checks matches the elapsed time, and so far no run has been missed.
+
 **The CloudWatch agent** reports memory and disk usage, which EC2 does not
 publish natively. It pushes to the `CWAgent` namespace using the instance's IAM
 role, so no credentials live on the box.
@@ -210,11 +217,12 @@ the image.
 suggested `~/.ssh/homelab.pem`; `.pem` is the extension AWS uses for keys it
 generates, not for one you import.
 
-A sixth is operational rather than a defect: `/tmp` is cleared on reboot and the
-bootstrap ends with one, so the clone at `/tmp/my-cloud-homelab` deletes itself
-minutes after first boot. `/opt/homelab` is a copy, not a checkout. There is no
-git working tree on the instance, so the instance cannot pull updates — a
-rebuild is the update mechanism, which is defensible but was nowhere documented.
+A sixth is operational rather than a defect: **the instance has no git checkout
+it can update from.** `/opt/homelab` is a copy made by `setup.sh`, not a working
+tree, and the clone at `/tmp/my-cloud-homelab` is a build artifact in a directory
+subject to age-based cleanup. Nothing on the box can `git pull`. A rebuild is the
+update mechanism, which is defensible for a stateless instance but was nowhere
+documented, and it means a fix applied over SSH is lost at the next apply.
 
 ## Two more found by reading the scripts afterwards
 

@@ -138,11 +138,24 @@ The agent picks up container logs with a glob over
 `/var/lib/docker/containers/<id>/<id>-json.log`. That path only exists with the
 `json-file` driver. Changing the driver silently ends log shipping.
 
-### `/tmp` is cleared on reboot, and the bootstrap ends with one
+### The instance has no git checkout it can update from
 
-The clone at `/tmp/my-cloud-homelab` deletes itself minutes after first boot.
-`/opt/homelab` is a copy made by `setup.sh`, not a checkout — there is no git
-working tree anywhere on the instance, so the instance cannot pull updates.
+`/opt/homelab` is a copy made by `setup.sh`, not a working tree. The clone at
+`/tmp/my-cloud-homelab` is a build artifact of the bootstrap, and `/tmp` on
+Ubuntu is subject to age-based cleanup by `systemd-tmpfiles`, so it is not
+somewhere to keep a checkout. Either way, nothing on the box can `git pull`.
+
+I had this wrong at first and it is worth recording why. An early attempt to `cd`
+into `/tmp/my-cloud-homelab` failed with `No such file or directory`, and I put
+that down to `/tmp` being wiped on reboot. It was not: that deployment had no
+`user_data` at all, so the clone had never happened. The directory was missing
+because nothing had ever created it. Nineteen hours and one reboot later the
+clone from the fixed bootstrap was still present, which is what showed the
+original explanation to be wrong.
+
+The general lesson is the one worth keeping: a plausible mechanism that predicts
+the symptom is not the same as the cause, and "the file is gone" and "the file
+was never written" look identical from the error message.
 
 That is a defensible design for something meant to be rebuilt rather than
 patched, but it was not deliberate and it was nowhere documented. If you want to
