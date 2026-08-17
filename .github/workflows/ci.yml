@@ -1,0 +1,106 @@
+# ==============================================================================
+# CI — static checks for the infrastructure and the shell that bootstraps it
+#
+# This repository deploys infrastructure and configures a host with bash. There
+# is nothing to unit test, but there is plenty to get wrong statically, and two
+# real defects in these scripts were found by reading rather than by tooling.
+# This is that reading, automated.
+#
+# Three jobs, all fast, all independent:
+#   terraform  — formatting and validity of the module tree
+#   shellcheck — the bootstrap and its helpers
+#   secrets    — nothing credential-shaped is committed
+# ==============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform fmt & validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      # -recursive covers modules/, which is where most of the code lives.
+      # A diff here is a one-command fix: terraform fmt -recursive
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      # -backend=false because validation does not need remote state and this
+      # repository does not configure any. The provider is still downloaded,
+      # which is what makes `validate` able to check resource schemas rather
+      # than just HCL syntax.
+      - name: Initialise without a backend
+        run: terraform init -backend=false
+        working-directory: terraform
+
+      - name: Validate
+        run: terraform validate
+        working-directory: terraform
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+
+      # --severity=warning, not the default. setup.sh sources /etc/os-release to
+      # read VERSION_CODENAME, which shellcheck reports as SC1091 (info) because
+      # it cannot follow a file that only exists on the target host. Failing the
+      # build on that would mean either deleting a correct line or disabling the
+      # rule, and a check that has to be silenced to pass is not a check.
+      # Everything that catches real bugs — SC2086 unquoted expansion, SC2164
+      # unchecked cd, SC2046 word splitting — is warning or error.
+      - name: Run shellcheck
+        run: shellcheck --severity=warning --shell=bash scripts/*.sh
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # terraform.tfvars is gitignored because it holds a home IP address and an
+      # email, and state files hold far more. Gitignore is a default, not a
+      # control: it stops the accidental `git add .` and does nothing about a
+      # deliberate `git add -f`. This is the control.
+      - name: No state, tfvars, or private keys committed
+        run: |
+          set -euo pipefail
+          FOUND=0
+          while IFS= read -r f; do
+            echo "::error file=${f}::${f} must never be committed"
+            FOUND=1
+          done < <(git ls-files | grep -E '(^|/)(terraform\.tfstate.*|terraform\.tfvars|.*\.pem|.*\.tfplan|id_rsa|id_ed25519)$' || true)
+          [ "$FOUND" -eq 0 ] || exit 1
+          echo "No state, tfvars, plan or key files are tracked."
+
+      - name: No credential-shaped strings
+        run: |
+          set -euo pipefail
+          # AKIA/ASIA prefixes are AWS access key IDs. The pattern itself has to
+          # be excluded or this job reports on its own source.
+          if git grep -nE '(AKIA|ASIA)[0-9A-Z]{16}' -- . ':!.github/workflows/ci.yml'; then
+            echo "::error::An AWS access key ID appears to be committed."
+            exit 1
+          fi
+          echo "No AWS access key IDs found."

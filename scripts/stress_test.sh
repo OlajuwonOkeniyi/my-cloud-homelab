@@ -57,15 +57,19 @@ pids=()
 # the workers survive. SIGTERM is not ignored, which is what the trap sends.
 cleanup() {
     local pid
-    for pid in "${pids[@]:-}"; do
-        kill -TERM "$pid" 2>/dev/null || true
-    done
+    # Guard the expansion: the trap can fire before any worker exists, and an
+    # unguarded "${pids[@]}" under `set -u` is an error on older bash.
+    if [[ ${#pids[@]} -gt 0 ]]; then
+        for pid in "${pids[@]}"; do
+            kill -TERM "$pid" 2>/dev/null || true
+        done
+    fi
 }
 trap cleanup EXIT INT TERM
 
 for ((i = 0; i < NUM_CORES; i++)); do
     yes > /dev/null 2>&1 &
-    pids+=($!)
+    pids+=("$!")
 done
 
 echo "Burning CPU on PIDs: ${pids[*]}"

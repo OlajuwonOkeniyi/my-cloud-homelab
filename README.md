@@ -1,5 +1,9 @@
 # My Cloud Homelab
 
+[![CI](https://github.com/OlajuwonOkeniyi/my-cloud-homelab/actions/workflows/ci.yml/badge.svg)](https://github.com/OlajuwonOkeniyi/my-cloud-homelab/actions/workflows/ci.yml)
+[![Terraform](https://img.shields.io/badge/terraform-%E2%89%A5%201.5-7B42BC)](https://developer.hashicorp.com/terraform)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 A single-instance personal server on AWS, defined entirely in Terraform. One
 `terraform apply` builds the network, the instance, the monitoring and the
 alerting, and the instance configures itself on first boot.
@@ -184,7 +188,26 @@ scripts/
 docs/
 ├── SETUP_NOTES.md    what deploying it actually taught me
 └── RECOVERY.md       runbook
+
+.github/workflows/
+└── ci.yml            terraform fmt/validate, shellcheck, secret scan
 ```
+
+## What CI checks
+
+There is nothing here to unit test — the deliverable is infrastructure and the
+shell that configures it. There is still plenty to get wrong statically, so CI
+runs `terraform fmt -check -recursive` and `terraform validate` over the module
+tree, `shellcheck` over `scripts/`, and a scan asserting that no state file,
+`tfvars`, private key or AWS access key ID is tracked. That last one matters
+because `.gitignore` is a default rather than a control: it stops an accidental
+`git add .` and does nothing about a deliberate `git add -f`.
+
+The shellcheck job runs at `--severity=warning` rather than the default. `setup.sh`
+sources `/etc/os-release` to read `VERSION_CODENAME`, which shellcheck reports as
+`SC1091` because it cannot follow a file that only exists on the target host.
+Failing on that would mean deleting a correct line or disabling the rule, and a
+check that has to be silenced to pass is not a check.
 
 ## What deploying it for the first time surfaced
 
