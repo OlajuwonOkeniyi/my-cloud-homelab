@@ -18,7 +18,7 @@
 # in the base image — no manual AMI ID updates needed.
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"]  # Canonical's official AWS account ID
+  owners      = ["099720109477"] # Canonical's official AWS account ID
 
   filter {
     name   = "name"
@@ -181,9 +181,9 @@ resource "aws_instance" "homelab" {
   }
 
   root_block_device {
-    volume_size = 20        # 20GB is comfortable for Docker images + logs
-    volume_type = "gp3"    # gp3 is cheaper than gp2 with better baseline IOPS
-    encrypted   = true     # Encryption at rest — no performance penalty on modern instance types
+    volume_size = 20    # 20GB is comfortable for Docker images + logs
+    volume_type = "gp3" # gp3 is cheaper than gp2 with better baseline IOPS
+    encrypted   = true  # Encryption at rest — no performance penalty on modern instance types
   }
 
   tags = {

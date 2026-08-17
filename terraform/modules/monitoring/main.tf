@@ -39,10 +39,10 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "${var.project_name}-cpu-high"
   alarm_description   = "CPU utilization exceeded 80% for 5 minutes"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 5       # 5 consecutive periods must breach
+  evaluation_periods  = 5 # 5 consecutive periods must breach
   metric_name         = "CPUUtilization"
   namespace           = "AWS/EC2"
-  period              = 60      # Each period = 60 seconds
+  period              = 60 # Each period = 60 seconds
   statistic           = "Average"
   threshold           = 80
   treat_missing_data  = "notBreaching"
@@ -69,12 +69,12 @@ resource "aws_cloudwatch_metric_alarm" "status_check" {
   alarm_name          = "${var.project_name}-status-check-failed"
   alarm_description   = "Instance status check failed"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2       # 2 consecutive failures (2 minutes) before alarming
+  evaluation_periods  = 2 # 2 consecutive failures (2 minutes) before alarming
   metric_name         = "StatusCheckFailed"
   namespace           = "AWS/EC2"
   period              = 60
-  statistic           = "Maximum"  # Maximum — if ANY check failed in the period, catch it
-  threshold           = 0          # >0 means at least one check failed
+  statistic           = "Maximum" # Maximum — if ANY check failed in the period, catch it
+  threshold           = 0         # >0 means at least one check failed
   treat_missing_data  = "breaching"
 
   dimensions = {
@@ -95,7 +95,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check" {
 # If the CloudWatch Agent creates them, they default to "never expire" which gets expensive.
 resource "aws_cloudwatch_log_group" "app_logs" {
   name              = "/homelab/app"
-  retention_in_days = 14  # 2 weeks is plenty for a homelab — keeps costs near zero
+  retention_in_days = 14 # 2 weeks is plenty for a homelab — keeps costs near zero
 
   tags = {
     Project = var.project_name
@@ -135,7 +135,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           metrics = [
             ["AWS/EC2", "CPUUtilization", "InstanceId", var.instance_id]
           ]
-          period = 300   # 5-minute aggregation — smooths out short spikes
+          period = 300 # 5-minute aggregation — smooths out short spikes
           stat   = "Average"
           region = var.aws_region
           title  = "CPU Utilization"
@@ -168,7 +168,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           metrics = [
             # Disk metric includes path and fstype dimensions to identify the root volume
             ["CWAgent", "disk_used_percent", "InstanceId", var.instance_id,
-             "path", "/", "fstype", "ext4"]
+            "path", "/", "fstype", "ext4"]
           ]
           period = 300
           stat   = "Average"
@@ -189,7 +189,7 @@ resource "aws_cloudwatch_dashboard" "main" {
             ["AWS/EC2", "NetworkOut", "InstanceId", var.instance_id]
           ]
           period = 300
-          stat   = "Sum"   # Sum = total bytes in the period (not average rate)
+          stat   = "Sum" # Sum = total bytes in the period (not average rate)
           region = var.aws_region
           title  = "Network I/O"
         }

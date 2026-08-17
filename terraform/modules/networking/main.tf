@@ -14,8 +14,8 @@
 # room to carve out additional subnets later without re-IPing anything.
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true  # Gives instances public DNS names (useful for SSH)
-  enable_dns_support   = true  # Required for DNS hostnames to work
+  enable_dns_hostnames = true # Gives instances public DNS names (useful for SSH)
+  enable_dns_support   = true # Required for DNS hostnames to work
 
   tags = {
     Name    = "${var.project_name}-vpc"

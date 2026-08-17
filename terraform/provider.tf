@@ -12,7 +12,7 @@ terraform {
 
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
+      source = "hashicorp/aws"
       # ~> 5.0 allows 5.x patches but won't auto-upgrade to 6.x —
       # major version bumps in the AWS provider frequently break resource schemas
       version = "~> 5.0"
