@@ -31,18 +31,34 @@ resource "aws_sns_topic_subscription" "email" {
 }
 
 # --- CPU Alarm ---
-# Fires if average CPU stays above 80% for 5 consecutive minutes.
-# Why 80% for 5 min? Single spikes are normal (apt-get, docker build), but
-# sustained high CPU usually means something is stuck or under attack.
-# "treat_missing_data = notBreaching" prevents false alarms during instance stop/start.
+# Fires if average CPU exceeds 80% over one 5-minute period.
+#
+# This instance runs EC2 basic monitoring (no `monitoring = true` on the
+# aws_instance resource — detailed monitoring is a small recurring cost, and
+# this project's stated goal is $0). Basic monitoring publishes CPUUtilization
+# at 5-minute resolution, not 1-minute. The alarm was originally period = 60,
+# evaluation_periods = 5 ("5 consecutive 1-minute periods"), which is only
+# satisfiable with 1-minute data. Against 5-minute data, only one in every
+# five of those 60-second periods ever receives a real datapoint; the other
+# four are empty, and treat_missing_data = "notBreaching" treats each empty
+# period as breaking the streak. Five consecutive breaching 60-second periods
+# can therefore never accumulate — the alarm could not fire regardless of how
+# long CPU stayed pegged at 100%. Found by running scripts/stress_test.sh and
+# checking the alarm history rather than trusting the OK state: sustained,
+# verified 100% CPU for 6 minutes produced no alarm and no history entry.
+#
+# period = 300 matches the metric's actual resolution: one datapoint, one
+# period. A 5-minute average above 80% already represents 5 minutes of
+# sustained load, which is the same "not a spike" intent the original 5 x
+# 60s design was going for — just aligned to data that actually exists.
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "${var.project_name}-cpu-high"
-  alarm_description   = "CPU utilization exceeded 80% for 5 minutes"
+  alarm_description   = "CPU utilization exceeded 80% averaged over 5 minutes"
   comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 5 # 5 consecutive periods must breach
+  evaluation_periods  = 1 # one period at this resolution already means 5 minutes
   metric_name         = "CPUUtilization"
   namespace           = "AWS/EC2"
-  period              = 60 # Each period = 60 seconds
+  period              = 300 # matches EC2 basic monitoring's native resolution
   statistic           = "Average"
   threshold           = 80
   treat_missing_data  = "notBreaching"
