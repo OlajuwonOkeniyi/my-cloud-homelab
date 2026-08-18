@@ -18,6 +18,25 @@ measured over a meaningful period, it is left out rather than estimated.
 
 ---
 
+## Verifying any of this
+
+This runs on a private instance: SSH is limited to one `/32`, the app binds to
+loopback, and the dashboard is in an AWS account nobody else can log into. So it
+is fair to ask how a reader would tell whether any of it is real.
+
+The strongest answer is not an artifact. It is that the code is here and it runs:
+`terraform apply` in any AWS account produces the same 18 resources, and CI runs
+`terraform validate` and `shellcheck` on GitHub's runners on every push, which is
+a result I cannot edit. After that, a live demo. Only then screenshots and
+snapshots, which are the weakest form and are labelled as such.
+
+[docs/EVIDENCE.md](docs/EVIDENCE.md) sets that out properly, including what none
+of it can show — that the instance is up at the moment you are reading. Nothing
+in a git repository can show that, and this one is meant to be destroyed and
+rebuilt rather than kept alive.
+
+---
+
 ## What gets created
 
 `terraform apply` produces 18 resources in one region:
@@ -141,8 +160,14 @@ Three layers, cheapest first.
 timestamp, status code, response time and a healthy flag to
 `/opt/homelab/logs/uptime.csv`. It rotates itself at 10,000 rows. This is the
 only record that survives CloudWatch being unavailable, and it is the source of
-any uptime figure this project ever quotes. **It is not committed to this
-repository** — the data belongs to a running instance, not to source control.
+any uptime figure this project ever quotes.
+
+**The live file is not committed** — it belongs to a running instance, not to
+source control, and a file that git rewrites on every deploy is not a log.
+Dated snapshots of it are a different thing and do live here, under
+`docs/evidence/`, alongside the machine-generated reports described in
+[docs/EVIDENCE.md](docs/EVIDENCE.md). One is a moving instrument; the other is an
+exhibit with a timestamp on it.
 
 What it has recorded so far, stated with its window rather than dressed up as a
 service level: **228 checks over the first 19 hours after deployment, none
@@ -182,12 +207,16 @@ config/
 ├── docker-compose.yml
 └── homelab.service   systemd unit for the compose stack
 scripts/
-├── setup.sh          first-boot bootstrap, invoked by user_data
-├── health_check.sh   cron health check
-└── stress_test.sh    saturates CPU to prove the alarm path works
+├── setup.sh              first-boot bootstrap, invoked by user_data
+├── health_check.sh       cron health check
+├── stress_test.sh        saturates CPU to prove the alarm path works
+└── collect_evidence.sh   redacted snapshot of the running instance
 docs/
 ├── SETUP_NOTES.md    what deploying it actually taught me
-└── RECOVERY.md       runbook
+├── RECOVERY.md       runbook
+├── EVIDENCE.md       how to verify any of this, strongest method first
+├── evidence/         dated snapshots — reports and uptime CSVs
+└── screenshots/      dashboard, alarms, alarm email, terminal
 
 .github/workflows/
 └── ci.yml            terraform fmt/validate, shellcheck, secret scan
