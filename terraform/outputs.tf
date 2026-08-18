@@ -1,5 +1,5 @@
 # ==============================================================================
-# outputs.tf — Values printed after `terraform apply`
+# outputs.tf - Values printed after `terraform apply`
 #
 # These outputs serve double duty:
 #   1. Quick reference after a deploy (IP, SSH command, dashboard link)
@@ -17,12 +17,12 @@ output "instance_id" {
 }
 
 output "vpc_id" {
-  description = "VPC ID — useful if you want to add more resources to this network later"
+  description = "VPC ID - useful if you want to add more resources to this network later"
   value       = module.networking.vpc_id
 }
 
 output "dashboard_url" {
-  description = "CloudWatch dashboard URL — bookmark this for at-a-glance monitoring"
+  description = "CloudWatch dashboard URL - bookmark this for at-a-glance monitoring"
   value       = module.monitoring.dashboard_url
 }
 
@@ -30,7 +30,7 @@ output "ssh_command" {
   description = "Copy-paste SSH command to connect (adjust key path if yours differs)"
   # No .pem: that extension belongs to keys AWS generates for you. This config
   # imports a key you made yourself, so the private half is whatever ssh-keygen
-  # wrote — ~/.ssh/homelab with no extension.
+  # wrote - ~/.ssh/homelab with no extension.
   value = "ssh -i ~/.ssh/homelab ubuntu@${module.compute.public_ip}"
 }
 

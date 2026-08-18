@@ -1,12 +1,12 @@
 # ==============================================================================
-# homelab.service — systemd unit for the Docker Compose stack
+# homelab.service - systemd unit for the Docker Compose stack
 #
 # Purpose: Ensures the homelab containers start on boot and can be managed
 # with standard systemd commands (systemctl start/stop/status homelab).
 #
 # Type=oneshot + RemainAfterExit=yes is the pattern for "fire once and consider
 # the service active as long as the thing it started is still running."
-# Docker Compose manages the actual container lifecycle — systemd just kicks it off.
+# Docker Compose manages the actual container lifecycle - systemd just kicks it off.
 #
 # Install to: /etc/systemd/system/homelab.service
 # Enable:     systemctl enable homelab.service
@@ -14,7 +14,7 @@
 
 [Unit]
 Description=Homelab Docker Compose Application
-# Don't start until Docker is ready — otherwise `docker compose up` fails
+# Don't start until Docker is ready - otherwise `docker compose up` fails
 Requires=docker.service
 After=docker.service
 
@@ -29,7 +29,7 @@ WorkingDirectory=/opt/homelab/config
 # --build: rebuild the image if Dockerfile changed (idempotent if nothing changed)
 ExecStart=/usr/bin/docker compose up -d --build
 ExecStop=/usr/bin/docker compose down
-# Restart on failure with a 10s backoff — handles edge cases like Docker
+# Restart on failure with a 10s backoff - handles edge cases like Docker
 # not being fully ready despite the After=docker.service dependency
 Restart=on-failure
 RestartSec=10

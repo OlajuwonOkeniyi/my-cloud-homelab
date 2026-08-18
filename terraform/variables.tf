@@ -1,9 +1,9 @@
 # ==============================================================================
-# variables.tf — Input variables for the root module
+# variables.tf - Input variables for the root module
 #
 # Variables with defaults can be left alone for a quick deploy.
 # Variables without defaults (ssh_public_key, allowed_ssh_cidr, alert_email)
-# MUST be set in terraform.tfvars or via -var flags — Terraform will prompt
+# MUST be set in terraform.tfvars or via -var flags - Terraform will prompt
 # interactively if they're missing.
 # ==============================================================================
 
@@ -22,7 +22,7 @@ variable "aws_profile" {
 }
 
 variable "project_name" {
-  description = "Name prefix for all resources — keeps things identifiable in the AWS console"
+  description = "Name prefix for all resources - keeps things identifiable in the AWS console"
   type        = string
   default     = "homelab"
 }
@@ -30,11 +30,11 @@ variable "project_name" {
 variable "ssh_public_key" {
   description = "Public SSH key for EC2 access (contents of ~/.ssh/homelab.pub)"
   type        = string
-  # No default — you must supply your own key. Never commit private keys.
+  # No default - you must supply your own key. Never commit private keys.
 }
 
 variable "allowed_ssh_cidr" {
-  description = "CIDR block allowed to SSH in — should be YOUR IP as x.x.x.x/32"
+  description = "CIDR block allowed to SSH in - should be YOUR IP as x.x.x.x/32"
   type        = string
   # No default on purpose: forces you to think about what IP you're allowing.
   # Use https://checkip.amazonaws.com to find your public IP.
@@ -58,7 +58,7 @@ variable "repo_branch" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type — check free-tier eligibility for YOUR account"
+  description = "EC2 instance type - check free-tier eligibility for YOUR account"
   type        = string
   # AWS changed the free tier for accounts created on or after 2025-07-15:
   # the 12-month tier was replaced by $100 of credits over 6 months, and the
@@ -69,7 +69,7 @@ variable "instance_type" {
   #     --query "InstanceTypes[*].[InstanceType]" --output text
   #
   # Do NOT use t4g.micro without also changing the AMI filter in
-  # modules/compute/main.tf — t4g is ARM (arm64) and the filter matches amd64,
+  # modules/compute/main.tf - t4g is ARM (arm64) and the filter matches amd64,
   # so the apply would fail to resolve an image.
   default = "t3.micro"
 }

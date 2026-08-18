@@ -1,11 +1,11 @@
 # ==============================================================================
-# Dockerfile — Containerized Flask app for the homelab
+# Dockerfile - Containerized Flask app for the homelab
 #
 # Uses python:3.11-slim as the base (Debian Bookworm minimal).
 # Full python:3.11 adds several hundred MB of build tools not needed at runtime.
 #
 # slim means slim: there is no curl and no wget in this image. The Compose
-# healthcheck probes with `python -c` and urllib for exactly that reason — an
+# healthcheck probes with `python -c` and urllib for exactly that reason - an
 # earlier curl-based probe failed every time while the app served 200s.
 #
 # Build context: the app/ directory (set via docker-compose.yml `build: ../app`)
@@ -20,10 +20,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Now copy the application code — this layer busts cache on every code change
+# Now copy the application code - this layer busts cache on every code change
 COPY server.py .
 
-# Document the port the app listens on (informational — actual mapping is in docker-compose)
+# Document the port the app listens on (informational - actual mapping is in docker-compose)
 EXPOSE 5000
 
 # --- Production server ---

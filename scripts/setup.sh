@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# setup.sh — One-shot bootstrap for a fresh EC2 instance
+# setup.sh - One-shot bootstrap for a fresh EC2 instance
 #
 # This is invoked automatically. The instance's user_data (see
 # terraform/modules/compute/main.tf) clones this repository to
@@ -19,7 +19,7 @@
 #
 # Prerequisites (both satisfied by Terraform):
 #   - The repository checkout must be at /tmp/my-cloud-homelab. This is a hard
-#     precondition, checked below — an earlier version logged a note and
+#     precondition, checked below - an earlier version logged a note and
 #     continued, then died five lines later under `set -e` on a copy of a file
 #     that had never arrived.
 #   - The instance must have its IAM instance profile attached, or the
@@ -65,7 +65,7 @@ install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add Docker's apt repository — architecture-aware for ARM compatibility if needed
+# Add Docker's apt repository - architecture-aware for ARM compatibility if needed
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
 https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
 | tee /etc/apt/sources.list.d/docker.list > /dev/null
@@ -80,14 +80,14 @@ usermod -aG docker ubuntu
 # SECTION 3: CloudWatch Agent
 # =============================================================================
 # The agent pushes memory/disk metrics and container logs to CloudWatch.
-# EC2's built-in monitoring only covers CPU and network — memory and disk
+# EC2's built-in monitoring only covers CPU and network - memory and disk
 # require the agent.
 log "Installing CloudWatch agent..."
 wget -q https://amazoncloudwatch-agent.s3.amazonaws.com/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
 dpkg -i -E amazon-cloudwatch-agent.deb
 rm -f amazon-cloudwatch-agent.deb
 
-# Agent configuration — defines which metrics to collect and which logs to ship.
+# Agent configuration - defines which metrics to collect and which logs to ship.
 # Metrics: memory usage %, disk usage % (root partition)
 # Logs: /var/log/syslog → /homelab/system, Docker container logs → /homelab/app
 cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json << 'EOF'
@@ -145,7 +145,7 @@ EOF
 # =============================================================================
 # SECTION 4: Application Deployment
 # =============================================================================
-# Copy project files into /opt/homelab — the canonical location on the instance.
+# Copy project files into /opt/homelab - the canonical location on the instance.
 # If you prefer git pull, clone directly to $HOMELAB_DIR instead.
 log "Setting up application..."
 mkdir -p "$HOMELAB_DIR"
@@ -181,7 +181,7 @@ systemctl start homelab.service    # Start now
 # SECTION 5: Health Check Cron
 # =============================================================================
 # Runs every 5 minutes, logs uptime data to CSV for trend analysis.
-# Separate from Docker's built-in healthcheck — this gives us a historical record.
+# Separate from Docker's built-in healthcheck - this gives us a historical record.
 log "Setting up health check cron..."
 mkdir -p "$HOMELAB_DIR/logs"
 cp "$HOMELAB_DIR/scripts/health_check.sh" /usr/local/bin/
@@ -194,7 +194,7 @@ echo "*/5 * * * * root /usr/local/bin/health_check.sh" > /etc/cron.d/homelab-hea
 # Minimal but meaningful hardening for an internet-facing instance.
 log "Applying basic hardening..."
 
-# Force key-only SSH — disable password authentication entirely.
+# Force key-only SSH - disable password authentication entirely.
 # The Terraform-deployed key pair is the only way in.
 sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
 sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
@@ -206,7 +206,7 @@ apt-get install -y -qq unattended-upgrades
 dpkg-reconfigure -plow unattended-upgrades
 
 # =============================================================================
-# DONE — Reboot to apply everything cleanly
+# DONE - Reboot to apply everything cleanly
 # =============================================================================
 # Reboot ensures: kernel updates take effect, docker group membership applies
 # to the ubuntu user, and all services start in their final boot configuration.

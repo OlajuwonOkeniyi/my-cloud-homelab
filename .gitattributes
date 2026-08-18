@@ -1,5 +1,5 @@
 # ==============================================================================
-# .gitattributes — enforce line endings independently of anyone's git config
+# .gitattributes - enforce line endings independently of anyone's git config
 #
 # This project is edited on Windows and executed on Linux. A shell script that
 # reaches the EC2 instance with CRLF endings fails at the shebang with

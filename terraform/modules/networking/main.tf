@@ -1,5 +1,5 @@
 # ==============================================================================
-# modules/networking/main.tf — VPC and public subnet infrastructure
+# modules/networking/main.tf - VPC and public subnet infrastructure
 #
 # Creates an isolated network for the homelab with internet access.
 # Architecture is intentionally simple: one VPC, one public subnet, one IGW.
@@ -10,7 +10,7 @@
 # ==============================================================================
 
 # --- VPC ---
-# /16 gives us 65,536 IPs — way more than needed, but it's free and leaves
+# /16 gives us 65,536 IPs - way more than needed, but it's free and leaves
 # room to carve out additional subnets later without re-IPing anything.
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
@@ -26,7 +26,7 @@ resource "aws_vpc" "main" {
 # --- Public Subnet ---
 # /24 = 254 usable IPs. Placed in AZ "a" of whatever region we're deploying to.
 # map_public_ip_on_launch means any instance launched here gets a public IP
-# automatically — no need to allocate an Elastic IP for a single-instance setup.
+# automatically - no need to allocate an Elastic IP for a single-instance setup.
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
@@ -53,7 +53,7 @@ resource "aws_internet_gateway" "main" {
 
 # --- Route Table ---
 # Sends all non-local traffic (0.0.0.0/0) through the internet gateway.
-# Local VPC traffic (10.0.0.0/16) is implicitly routed — no rule needed.
+# Local VPC traffic (10.0.0.0/16) is implicitly routed - no rule needed.
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 

@@ -3,7 +3,7 @@
 What to do when something breaks, ordered most likely first.
 
 These are procedures, not a history. The incident log at the bottom contains
-only what has actually happened — it is short, because this has been running
+only what has actually happened - it is short, because this has been running
 since 16 August 2026.
 
 ---
@@ -19,13 +19,13 @@ systemctl restart homelab
 curl -s localhost:5000/health
 ```
 
-`docker ps -a` rather than `docker ps` — a container that exited will not appear
+`docker ps -a` rather than `docker ps` - a container that exited will not appear
 in the latter, and "no output" is easy to misread as "no problem".
 
 **Likely causes.** The instance has 1 GiB of RAM, so an out-of-memory kill is
 plausible; `dmesg | grep -i oom` confirms or rules it out in one line. The
 systemd unit uses `Restart=always`, so a container that merely crashed should
-already be back — if it is genuinely down, it is failing to start rather than
+already be back - if it is genuinely down, it is failing to start rather than
 having died once, and `docker logs` on the exited container is where the reason
 is.
 
@@ -49,7 +49,7 @@ docker inspect --format '{{json .State.Health}}' homelab-app | python3 -m json.t
 
 That prints the last few probe results including their output, which says
 whether the probe failed or the app did. The probe in
-`config/docker-compose.yml` now uses `python -c` with `urllib` — the interpreter
+`config/docker-compose.yml` now uses `python -c` with `urllib` - the interpreter
 is guaranteed present because it is what the image is for.
 
 A red status that is always red carries no information and is worse than no
@@ -69,7 +69,7 @@ status at all, because it trains you to ignore it.
    ```
 
    If it differs from `allowed_ssh_cidr` in `terraform.tfvars`, update the
-   variable and `terraform apply`. Change it in the tfvars, not in the console —
+   variable and `terraform apply`. Change it in the tfvars, not in the console:
    a console edit is drift that the next apply silently reverts.
 
 2. **Check the instance state** in the EC2 console or with
@@ -84,7 +84,7 @@ status at all, because it trains you to ignore it.
    aws ec2 start-instances --instance-ids <id>
    ```
 
-   **The public IP changes on stop/start** — there is no Elastic IP by design.
+   **The public IP changes on stop/start** - there is no Elastic IP by design.
    Get the new one with `terraform refresh && terraform output instance_public_ip`.
 
 4. If none of that works, rebuild (Scenario 6).
@@ -114,7 +114,7 @@ aws cloudwatch set-alarm-state \
 ```
 
 This only sets the state until the next evaluation. If the metric is still
-breaching it will flip straight back — which is a useful test in itself.
+breaching it will flip straight back - which is a useful test in itself.
 
 **If you are getting no emails at all**, the SNS subscription was probably never
 confirmed. AWS sends a confirmation link on first apply and the subscription
@@ -140,7 +140,7 @@ journalctl --vacuum-size=100M
 ```
 
 `health_check.sh` rotates `uptime.csv` at 10,000 rows, so at one row every five
-minutes it is not the culprit — roughly five weeks of data sits in a file of a
+minutes it is not the culprit - roughly five weeks of data sits in a file of a
 few hundred kilobytes. Docker images are almost always what filled the volume.
 
 ---
@@ -195,7 +195,7 @@ aws configure list
 ```
 
 If the credential type shows `login`, the CLI is authenticated through
-`aws login`, whose cache Terraform cannot read — the two tools do not share that
+`aws login`, whose cache Terraform cannot read - the two tools do not share that
 source. Use an IAM user access key in a named profile and set `aws_profile` in
 `terraform.tfvars`. `docs/SETUP_NOTES.md` has the detail.
 
@@ -203,7 +203,7 @@ source. Use an IAM user access key in a named profile and set `aws_profile` in
 
 ## After an incident
 
-1. Add a row to the log below — what happened, what fixed it, how long.
+1. Add a row to the log below - what happened, what fixed it, how long.
 2. Ask whether the monitoring would have caught it. Scenario 2 is the standing
    example of monitoring that reported a problem while telling you nothing
    useful about it.

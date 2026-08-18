@@ -1,5 +1,5 @@
 # ==============================================================================
-# modules/compute/main.tf — EC2 instance and supporting resources
+# modules/compute/main.tf - EC2 instance and supporting resources
 #
 # Provisions a single EC2 instance with:
 #   - SSH-only security group (locked to your IP)
@@ -8,14 +8,14 @@
 #   - Auto-resolving Ubuntu 22.04 AMI (always gets the latest patch)
 #
 # Design decision: No Elastic IP. The public IP changes on stop/start, but for a
-# homelab that runs 24/7 this is fine — and it avoids the EIP charge if the
+# homelab that runs 24/7 this is fine - and it avoids the EIP charge if the
 # instance is ever stopped.
 # ==============================================================================
 
 # --- AMI Lookup ---
 # Dynamically finds the latest Ubuntu 22.04 LTS (Jammy) HVM AMI from Canonical.
 # This means `terraform apply` after a few months automatically picks up security patches
-# in the base image — no manual AMI ID updates needed.
+# in the base image - no manual AMI ID updates needed.
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical's official AWS account ID
@@ -33,7 +33,7 @@ data "aws_ami" "ubuntu" {
 
 # --- SSH Key Pair ---
 # Registers your public key with AWS so EC2 can inject it into the instance.
-# The private key stays on your machine — never touches AWS.
+# The private key stays on your machine - never touches AWS.
 resource "aws_key_pair" "homelab" {
   key_name   = "${var.project_name}-key"
   public_key = var.ssh_public_key
@@ -41,7 +41,7 @@ resource "aws_key_pair" "homelab" {
 
 # --- Security Group ---
 # Minimal attack surface: SSH inbound from ONE IP, all outbound allowed.
-# No HTTP/HTTPS ingress — the app only listens on localhost inside the instance.
+# No HTTP/HTTPS ingress - the app only listens on localhost inside the instance.
 # If you want to expose the app publicly later, add port 443 here (with TLS).
 resource "aws_security_group" "homelab" {
   name        = "${var.project_name}-sg"
@@ -99,7 +99,7 @@ resource "aws_iam_role" "ec2_cloudwatch" {
   }
 }
 
-# Attach the AWS-managed CloudWatch agent policy — gives write access to
+# Attach the AWS-managed CloudWatch agent policy - gives write access to
 # CloudWatch Metrics, Logs, and read access to SSM Parameter Store
 # (which the agent uses for its config in some setups).
 resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
@@ -108,7 +108,7 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
 }
 
 # Instance profile is the "container" that lets EC2 instances assume the IAM role.
-# It's an AWS quirk — roles can't be directly attached to EC2, only via profiles.
+# It's an AWS quirk - roles can't be directly attached to EC2, only via profiles.
 resource "aws_iam_instance_profile" "homelab" {
   name = "${var.project_name}-instance-profile"
   role = aws_iam_role.ec2_cloudwatch.name
@@ -135,7 +135,7 @@ resource "aws_instance" "homelab" {
   # ever made private, replace this with an S3 object read via the instance role.
   #
   # Note: user_data runs ONCE, at first boot. Editing it will not re-run on an
-  # existing instance — Terraform shows the diff but leaves the instance alone.
+  # existing instance - Terraform shows the diff but leaves the instance alone.
   # Set user_data_replace_on_change = true if you would rather every bootstrap
   # edit rebuild the box; left off here so an innocuous comment change cannot
   # destroy a running homelab.
@@ -170,7 +170,7 @@ resource "aws_instance" "homelab" {
   # baseline over a rolling 24 hours bills surplus credits at a per-vCPU-hour
   # rate instead of throttling. This repository ships scripts/stress_test.sh,
   # which saturates every core for six minutes by design in order to trip the
-  # CloudWatch alarm — precisely the workload that generates surplus credits.
+  # CloudWatch alarm - precisely the workload that generates surplus credits.
   #
   # "standard" restores the t2 behaviour: when credits run out the instance is
   # throttled to its baseline rather than billed. For a homelab whose stated
@@ -183,7 +183,7 @@ resource "aws_instance" "homelab" {
   root_block_device {
     volume_size = 20    # 20GB is comfortable for Docker images + logs
     volume_type = "gp3" # gp3 is cheaper than gp2 with better baseline IOPS
-    encrypted   = true  # Encryption at rest — no performance penalty on modern instance types
+    encrypted   = true  # Encryption at rest - no performance penalty on modern instance types
   }
 
   tags = {

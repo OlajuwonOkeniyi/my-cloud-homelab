@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# collect_evidence.sh — snapshot the running homelab into a redacted report
+# collect_evidence.sh - snapshot the running homelab into a redacted report
 #
 # Run this ON the instance:
 #     bash /opt/homelab/scripts/collect_evidence.sh > /tmp/evidence.md
@@ -14,9 +14,9 @@
 # gathered by one command rather than assembled by hand.
 #
 # It is evidence, not proof. Anyone can edit a markdown file. What it is good
-# for is being specific and internally consistent — the row count in the health
+# for is being specific and internally consistent - the row count in the health
 # log has to agree with the uptime, the container has to have been started
-# before the checks that probed it — and being reproducible on demand.
+# before the checks that probed it - and being reproducible on demand.
 #
 # WHAT IT REDACTS
 # Public IPv4 addresses and 12-digit AWS account IDs are masked before output.
@@ -106,7 +106,7 @@ emit() {
         tail -10 "$LOG_FILE"
         echo '```'
     else
-        echo "\`${LOG_FILE}\` does not exist — the cron health check has never run."
+        echo "\`${LOG_FILE}\` does not exist - the cron health check has never run."
     fi
     echo
 
@@ -123,7 +123,7 @@ emit() {
     echo
     echo "The \`(healthy)\` marker is the Compose healthcheck. It probes with"
     echo "\`python -c\` and urllib rather than curl, because the image is built from"
-    echo "\`python:3.11-slim\`, which ships no curl — an earlier probe failed on every"
+    echo "\`python:3.11-slim\`, which ships no curl - an earlier probe failed on every"
     echo "run while the endpoint returned 200 throughout."
     echo
 
@@ -155,8 +155,8 @@ emit() {
     echo "## What this does and does not show"
     echo
     echo "**Shows:** that the instance exists, what it is running, that the systemd"
-    echo "units are enabled as well as active — so it survives a reboot, not just"
-    echo "this moment — and that the health check has been recording continuously"
+    echo "units are enabled as well as active - so it survives a reboot, not just"
+    echo "this moment - and that the health check has been recording continuously"
     echo "since the timestamp above."
     echo
     echo "**Does not show:** anything a reader can independently verify. This is a"
@@ -168,7 +168,7 @@ emit() {
 
 # --- Redaction -----------------------------------------------------------------
 # Two passes. A single blanket IPv4 rule would eat the private addresses too, and
-# a marker made of punctuation does not protect them — sed's word boundaries still
+# a marker made of punctuation does not protect them - sed's word boundaries still
 # match the digits inside it. So private and loopback addresses have their dots
 # swapped for a token first, which makes them unmatchable by the dotted-quad rule,
 # and the token is swapped back at the end.

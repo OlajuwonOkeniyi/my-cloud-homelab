@@ -1,8 +1,8 @@
 # ==============================================================================
-# docker-compose.yml — Single-service stack for the homelab app
+# docker-compose.yml - Single-service stack for the homelab app
 #
 # Design decisions:
-#   - Binds to 127.0.0.1 only (not 0.0.0.0) — the app is NOT exposed to the
+#   - Binds to 127.0.0.1 only (not 0.0.0.0) - the app is NOT exposed to the
 #     internet. Access it via SSH tunnel or add a reverse proxy later.
 #   - "unless-stopped" restart policy ensures the container survives reboots
 #     but won't restart if you manually `docker compose down`.
@@ -16,7 +16,7 @@ services:
     restart: unless-stopped
 
     ports:
-      # Bind to loopback ONLY — not reachable from outside the instance.
+      # Bind to loopback ONLY - not reachable from outside the instance.
       # To access remotely: ssh -L 5000:localhost:5000 ubuntu@<ip>
       - "127.0.0.1:5000:5000"
 
@@ -40,7 +40,7 @@ services:
     #
     # This used to shell out to `curl`, which does not exist in python:3.11-slim.
     # The probe therefore failed on every interval and the container sat
-    # permanently "unhealthy" while serving traffic perfectly well — a red
+    # permanently "unhealthy" while serving traffic perfectly well - a red
     # status that means nothing is worse than no status at all. Probing with
     # the interpreter that is guaranteed to be in the image needs no extra
     # package and no larger image.

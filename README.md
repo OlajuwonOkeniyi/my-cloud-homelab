@@ -13,7 +13,7 @@ watching CPU and instance health and SNS emailing me when either goes wrong.
 
 **Built and first deployed on 16 August 2026.** Everything below describes what
 this code does and what was observed running it. There are no illustrative
-numbers in this README — where a figure would be useful but has not been
+numbers in this README - where a figure would be useful but has not been
 measured over a meaningful period, it is left out rather than estimated.
 
 ---
@@ -31,7 +31,7 @@ a result I cannot edit. After that, a live demo. Only then screenshots and
 snapshots, which are the weakest form and are labelled as such.
 
 [docs/EVIDENCE.md](docs/EVIDENCE.md) sets that out properly, including what none
-of it can show — that the instance is up at the moment you are reading. Nothing
+of it can show - that the instance is up at the moment you are reading. Nothing
 in a git repository can show that, and this one is meant to be destroyed and
 rebuilt rather than kept alive.
 
@@ -54,7 +54,7 @@ would add cost or complexity this does not need.
 
 **SSH is the only inbound port**, restricted to a single `/32`. The Flask app
 binds to `127.0.0.1` inside the instance and is never exposed publicly; reaching
-it means an SSH tunnel. That removes an entire category of problem — the app
+it means an SSH tunnel. That removes an entire category of problem - the app
 does not have to be production-hardened because it is not reachable.
 
 **No Elastic IP.** The public address changes if the instance is stopped and
@@ -79,7 +79,7 @@ rest costs nothing on modern instance types. `delete_on_termination` means
 - An SSH key pair you generated yourself
 
 **A working `aws` CLI is not sufficient.** The CLI can authenticate through
-sources the Terraform provider cannot read — `aws login` caches short-lived
+sources the Terraform provider cannot read - `aws login` caches short-lived
 credentials that the AWS SDK behind Terraform does not look for. A successful
 `aws sts get-caller-identity` can sit alongside a `terraform plan` that fails
 with `no EC2 IMDS role found`, which reads as though Terraform expected to be
@@ -113,13 +113,13 @@ terraform plan -out=homelab.tfplan
 terraform apply homelab.tfplan
 ```
 
-`allowed_ssh_cidr` is your public address as a `/32` — `curl https://checkip.amazonaws.com`.
+`allowed_ssh_cidr` is your public address as a `/32` - `curl https://checkip.amazonaws.com`.
 Home connections rotate this; if SSH stops working later, that is the first
 thing to check.
 
 **Apply finishing does not mean the homelab is ready.** It means AWS created
-the instance. The first-boot bootstrap then runs for several minutes —
-system upgrade, Docker, the CloudWatch agent, the image build — and ends with a
+the instance. The first-boot bootstrap then runs for several minutes -
+system upgrade, Docker, the CloudWatch agent, the image build - and ends with a
 reboot. Expect SSH to drop partway through; that is the script working.
 
 **Confirm the SNS subscription.** AWS emails a confirmation link on first apply.
@@ -149,7 +149,7 @@ terraform destroy
 ```
 
 Nothing is created outside Terraform's state, so nothing is left behind. The app
-holds no persistent data — a rebuild is the intended way to update the instance,
+holds no persistent data - a rebuild is the intended way to update the instance,
 not a repair.
 
 ## How it is monitored
@@ -162,7 +162,7 @@ timestamp, status code, response time and a healthy flag to
 only record that survives CloudWatch being unavailable, and it is the source of
 any uptime figure this project ever quotes.
 
-**The live file is not committed** — it belongs to a running instance, not to
+**The live file is not committed** - it belongs to a running instance, not to
 source control, and a file that git rewrites on every deploy is not a log.
 Dated snapshots of it are a different thing and do live here, under
 `docs/evidence/`, alongside the machine-generated reports described in
@@ -173,7 +173,7 @@ What it has recorded so far, stated with its window rather than dressed up as a
 service level: **228 checks over the first 19 hours after deployment, none
 failed, mean response time 19.9 ms.** The 138 ms maximum is the first check of
 all, before anything was warm. Nineteen hours is not long enough to quote an
-uptime percentage from, so there isn't one here — the figure to watch is whether
+uptime percentage from, so there isn't one here - the figure to watch is whether
 the count of checks matches the elapsed time, and so far no run has been missed.
 
 **The CloudWatch agent** reports memory and disk usage, which EC2 does not
@@ -187,7 +187,7 @@ status check generally needs a human either way.
 
 A dashboard shows CPU, memory, disk and network in one view. The memory and disk
 widgets stay empty until the CloudWatch agent has been running for a few
-minutes — they come from the agent, not from EC2.
+minutes - they come from the agent, not from EC2.
 
 ## Repository layout
 
@@ -215,7 +215,7 @@ docs/
 ├── SETUP_NOTES.md    what deploying it actually taught me
 ├── RECOVERY.md       runbook
 ├── EVIDENCE.md       how to verify any of this, strongest method first
-├── evidence/         dated snapshots — reports and uptime CSVs
+├── evidence/         dated snapshots - reports and uptime CSVs
 └── screenshots/      dashboard, alarms, alarm email, terminal
 
 .github/workflows/
@@ -224,7 +224,7 @@ docs/
 
 ## What CI checks
 
-There is nothing here to unit test — the deliverable is infrastructure and the
+There is nothing here to unit test - the deliverable is infrastructure and the
 shell that configures it. There is still plenty to get wrong statically, so CI
 runs `terraform fmt -check -recursive` and `terraform validate` over the module
 tree, `shellcheck` over `scripts/`, and a scan asserting that no state file,
@@ -261,7 +261,7 @@ claim of running at no cost was wrong for any new account.
 **The container health check could never pass.** It probed with `curl -f`
 against an image built from `python:3.11-slim`, which contains no `curl`. Every
 probe failed. The deployed instance reported `Up 8 hours (unhealthy)` while the
-endpoint returned `200` throughout — a red status carrying no information, which
+endpoint returned `200` throughout - a red status carrying no information, which
 is worse than no status at all. It now probes with the interpreter already in
 the image.
 
@@ -292,10 +292,10 @@ against a closed port before and after the fix.
 **Interrupting the stress test left the CPU pinned.** The banner says "press
 Ctrl+C to stop early". A non-interactive shell sets SIGINT to ignore for
 commands it starts asynchronously, so the `yes` workers did not die with the
-script — following the instruction on screen killed the only thing that knew
+script - following the instruction on screen killed the only thing that knew
 their PIDs and left them running. Confirmed by signalling the process group.
 Cleanup now runs from an `EXIT` trap sending SIGTERM, which is not ignored.
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

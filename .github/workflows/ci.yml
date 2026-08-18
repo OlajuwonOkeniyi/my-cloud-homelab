@@ -1,5 +1,5 @@
 # ==============================================================================
-# CI — static checks for the infrastructure and the shell that bootstraps it
+# CI - static checks for the infrastructure and the shell that bootstraps it
 #
 # This repository deploys infrastructure and configures a host with bash. There
 # is nothing to unit test, but there is plenty to get wrong statically, and two
@@ -7,9 +7,9 @@
 # This is that reading, automated.
 #
 # Three jobs, all fast, all independent:
-#   terraform  — formatting and validity of the module tree
-#   shellcheck — the bootstrap and its helpers
-#   secrets    — nothing credential-shaped is committed
+#   terraform  - formatting and validity of the module tree
+#   shellcheck - the bootstrap and its helpers
+#   secrets    - nothing credential-shaped is committed
 # ==============================================================================
 
 name: CI
@@ -68,8 +68,8 @@ jobs:
       # it cannot follow a file that only exists on the target host. Failing the
       # build on that would mean either deleting a correct line or disabling the
       # rule, and a check that has to be silenced to pass is not a check.
-      # Everything that catches real bugs — SC2086 unquoted expansion, SC2164
-      # unchecked cd, SC2046 word splitting — is warning or error.
+      # Everything that catches real bugs - SC2086 unquoted expansion, SC2164
+      # unchecked cd, SC2046 word splitting - is warning or error.
       - name: Run shellcheck
         run: shellcheck --severity=warning --shell=bash scripts/*.sh
 

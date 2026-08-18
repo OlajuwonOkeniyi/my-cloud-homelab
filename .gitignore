@@ -5,7 +5,7 @@ terraform/*.tfstate.backup
 terraform/*.tfvars
 
 # Saved plan files. `terraform plan -out=FILE` writes the resolved plan, which
-# embeds variable values — including anything marked sensitive. Never commit one.
+# embeds variable values - including anything marked sensitive. Never commit one.
 terraform/*.tfplan
 
 # NOTE: .terraform.lock.hcl is deliberately NOT ignored.

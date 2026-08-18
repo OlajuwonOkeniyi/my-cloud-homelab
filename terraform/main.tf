@@ -1,10 +1,10 @@
 # ==============================================================================
-# main.tf — Root module orchestration
+# main.tf - Root module orchestration
 #
 # Wires together the three child modules in dependency order:
-#   1. networking — VPC, subnet, routing (no dependencies)
-#   2. compute   — EC2 instance (depends on networking for subnet/VPC IDs)
-#   3. monitoring — CloudWatch alarms & dashboard (depends on compute for instance ID)
+#   1. networking - VPC, subnet, routing (no dependencies)
+#   2. compute   - EC2 instance (depends on networking for subnet/VPC IDs)
+#   3. monitoring - CloudWatch alarms & dashboard (depends on compute for instance ID)
 #
 # Each module is self-contained with its own variables/outputs; this file
 # is just the glue that passes values between them.

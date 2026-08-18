@@ -57,8 +57,8 @@ no EC2 IMDS role found in the metadata service
 
 which reads as though Terraform expected to be running on an EC2 instance.
 `aws configure list` showed the credential type as `login`. The CLI's
-`aws login` cache lives in `~/.aws/login` and the AWS SDK for Go — which is
-what Terraform uses — does not look there. The two tools do not share that
+`aws login` cache lives in `~/.aws/login` and the AWS SDK for Go - which is
+what Terraform uses - does not look there. The two tools do not share that
 credential source.
 
 The fix was an IAM user with a long-lived access key in a named profile, and a
@@ -68,7 +68,7 @@ explaining this so the next person does not lose the same hour.
 ### A new IAM user has no permissions at all
 
 Creating the user does not grant anything. The first plan failed on
-`UnauthorizedOperation` for `ec2:DescribeImages` — the AMI lookup, the very
+`UnauthorizedOperation` for `ec2:DescribeImages` - the AMI lookup, the very
 first read. The policy has to be attached separately, and it has to be done as
 an identity that already has permission to attach policies:
 
@@ -118,13 +118,13 @@ credit_specification {
 
 Throttling is the correct failure mode here. Being slowed down is the signal;
 being charged is not. Watch `CPUCreditBalance` in CloudWatch if you run the
-stress test — with `standard`, exhausting it throttles to baseline until credits
+stress test - with `standard`, exhausting it throttles to baseline until credits
 accumulate again, so back-to-back runs are not useful.
 
 ### CloudWatch agent metrics need the instance profile
 
 The agent starts cleanly whether or not it can authenticate and fails to push
-metrics silently — the dashboard's memory and disk widgets simply stay empty.
+metrics silently - the dashboard's memory and disk widgets simply stay empty.
 `CloudWatchAgentServerPolicy` on the instance role is what makes them appear.
 When they are blank, check the agent's own log before suspecting the config:
 
@@ -173,7 +173,7 @@ The intended path is `terraform apply` after pushing the change.
 Security groups are stateful; return traffic for an allowed inbound connection
 is automatically permitted. Network ACLs are stateless and would need an
 explicit ephemeral-port rule for the reply. The default NACL is left alone
-deliberately — SSH access is controlled entirely by the security group's single
+deliberately - SSH access is controlled entirely by the security group's single
 `/32` rule.
 
 ---
@@ -202,7 +202,7 @@ terraform plan "-out=homelab.tfplan"
 ### Line endings are a deployment concern, not a style preference
 
 This repository is authored on Windows and executed on Linux. A shell script
-saved with CRLF endings does not run at all — the kernel reads the shebang as
+saved with CRLF endings does not run at all - the kernel reads the shebang as
 `/usr/bin/env bash\r` and reports:
 
 ```
@@ -247,7 +247,7 @@ ssh -i ~/.ssh/homelab -L 5000:127.0.0.1:5000 ubuntu@<public_ip>
 # then open http://localhost:5000
 ```
 
-The key is the one you generated. It has no `.pem` extension — `.pem` is what
+The key is the one you generated. It has no `.pem` extension - `.pem` is what
 AWS names keys it generates for you, not keys you import.
 
 ---
@@ -284,7 +284,7 @@ cd terraform
 terraform destroy
 ```
 
-The app holds no persistent data — the notes it stores are in memory and go with
+The app holds no persistent data - the notes it stores are in memory and go with
 the container. Nothing is created outside Terraform's state, so a destroy leaves
 nothing behind. If persistent data is ever added, an EBS snapshot step belongs
 here before the destroy.

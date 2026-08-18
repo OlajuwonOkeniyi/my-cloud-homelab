@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# stress_test.sh — CPU stress test to validate CloudWatch alarms
+# stress_test.sh - CPU stress test to validate CloudWatch alarms
 #
 # Saturates all CPU cores for a configurable duration to trigger the
 # "cpu-high" CloudWatch alarm. Use this to verify the full alerting pipeline:
@@ -15,15 +15,15 @@
 # alarm state actually transitions before the load stops.
 #
 # How it works: spawns one `yes > /dev/null` process per CPU core. `yes`
-# outputs "y" in an infinite loop — simple, effective, and doesn't require
+# outputs "y" in an infinite loop - simple, effective, and doesn't require
 # installing stress-ng or similar tools.
 #
 # IMPORTANT: This WILL make your instance unresponsive during the test.
-# SSH sessions may lag. That's expected — it's a stress test.
+# SSH sessions may lag. That's expected - it's a stress test.
 #
 # COST: the compute module pins cpu_credits = "standard" precisely because of
 # this script. T3 instances default to "unlimited", where exhausting your CPU
-# credits is billed rather than throttled — the default would turn this test
+# credits is billed rather than throttled - the default would turn this test
 # into a charge. If you change that setting, do not run this.
 # ==============================================================================
 set -euo pipefail
@@ -49,8 +49,8 @@ pids=()
 # Clean up on ANY exit, not just the happy path.
 #
 # This matters more than it looks. A non-interactive shell sets SIGINT and
-# SIGQUIT to ignore for commands it starts asynchronously — that is POSIX, not a
-# bash quirk — so the `yes` workers below do not die on Ctrl+C. Without this
+# SIGQUIT to ignore for commands it starts asynchronously - that is POSIX, not a
+# bash quirk - so the `yes` workers below do not die on Ctrl+C. Without this
 # trap, the banner's own advice to "press Ctrl+C to stop early" killed the
 # script and left every worker running, saturating the CPU with nothing left to
 # stop it. Verified by sending SIGINT to the process group: the script exits,
@@ -82,5 +82,5 @@ sleep "$DURATION"
 
 echo ""
 echo "Stress test complete at: $(date)"
-echo "Check CloudWatch — you should see the alarm transition to ALARM state."
+echo "Check CloudWatch - you should see the alarm transition to ALARM state."
 echo "SNS notification should arrive in your inbox shortly."

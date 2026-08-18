@@ -32,10 +32,10 @@ CloudWatch dashboard, a `terraform plan` returning no changes, and re-run
 **5. The artifacts in this directory.** Weakest, and worth being blunt about:
 anything I generate on a machine only I can reach is a claim, not a proof. A
 screenshot can be edited. A CSV can be typed by hand. Their value is that they
-are specific and internally consistent — the health-check row count has to agree
+are specific and internally consistent - the health-check row count has to agree
 with the instance uptime, the container start time has to precede the checks that
 probed it, the dashboard has to match the widget layout defined in
-`terraform/modules/monitoring/main.tf` — and inconsistency is much easier to spot
+`terraform/modules/monitoring/main.tf` - and inconsistency is much easier to spot
 than fabrication is to sustain.
 
 That ordering is the point of this file. If artifacts were the strongest evidence
@@ -53,7 +53,7 @@ hand, so the numbers in it were not chosen.
 Public IP addresses and AWS account IDs are masked by the script. Private RFC1918
 addresses are kept deliberately: `10.0.1.58` tells you the subnet layout matches
 the Terraform and gets nobody closer to the host. The instance's public address is
-not collected at all — publishing the address of a live host to prove it is live
+not collected at all - publishing the address of a live host to prove it is live
 is a bad trade.
 
 Regenerate it with:
@@ -65,8 +65,8 @@ bash /opt/homelab/scripts/collect_evidence.sh > /tmp/report.md
 
 ### `evidence/uptime-YYYY-MM-DD.csv`
 
-A dated snapshot of `/opt/homelab/logs/uptime.csv`. The live file is not tracked
-— it belongs to a running instance and a file git rewrites on every deploy is not
+A dated snapshot of `/opt/homelab/logs/uptime.csv`. The live file is not tracked:
+it belongs to a running instance and a file git rewrites on every deploy is not
 a log. A snapshot is a different object: it has a date on it, it never changes
 again, and its row count can be checked against the uptime in the report taken
 the same day.
@@ -81,6 +81,6 @@ actually renders as.
 
 That the instance is running *right now*. Nothing in a git repository can show
 that, and a README claiming continuous uptime would be making a promise it has no
-way to keep. The instance is destroyed and rebuilt on purpose — that is the whole
-design — so at any given moment it may not exist. `terraform apply` is the claim
+way to keep. The instance is destroyed and rebuilt on purpose - that is the whole
+design - so at any given moment it may not exist. `terraform apply` is the claim
 worth making, not "it is up".

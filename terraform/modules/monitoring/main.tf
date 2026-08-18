@@ -1,5 +1,5 @@
 # ==============================================================================
-# modules/monitoring/main.tf — CloudWatch alarms, logs, and dashboard
+# modules/monitoring/main.tf - CloudWatch alarms, logs, and dashboard
 #
 # Sets up a complete observability stack for a single EC2 instance:
 #   - SNS topic + email subscription for alert delivery
@@ -9,13 +9,13 @@
 #   - Dashboard with CPU, memory, disk, and network widgets
 #
 # The CloudWatch Agent running on the instance pushes the custom metrics
-# (mem_used_percent, disk_used_percent) — those won't appear until the
+# (mem_used_percent, disk_used_percent) - those won't appear until the
 # agent is installed and configured via setup.sh.
 # ==============================================================================
 
 # --- SNS Topic ---
 # Single topic for all homelab alerts. Email subscription requires manual
-# confirmation — check your inbox after first `terraform apply`.
+# confirmation - check your inbox after first `terraform apply`.
 resource "aws_sns_topic" "alerts" {
   name = "${var.project_name}-alerts"
 
@@ -34,7 +34,7 @@ resource "aws_sns_topic_subscription" "email" {
 # Fires if average CPU exceeds 80% over one 5-minute period.
 #
 # This instance runs EC2 basic monitoring (no `monitoring = true` on the
-# aws_instance resource — detailed monitoring is a small recurring cost, and
+# aws_instance resource - detailed monitoring is a small recurring cost, and
 # this project's stated goal is $0). Basic monitoring publishes CPUUtilization
 # at 5-minute resolution, not 1-minute. The alarm was originally period = 60,
 # evaluation_periods = 5 ("5 consecutive 1-minute periods"), which is only
@@ -42,7 +42,7 @@ resource "aws_sns_topic_subscription" "email" {
 # five of those 60-second periods ever receives a real datapoint; the other
 # four are empty, and treat_missing_data = "notBreaching" treats each empty
 # period as breaking the streak. Five consecutive breaching 60-second periods
-# can therefore never accumulate — the alarm could not fire regardless of how
+# can therefore never accumulate - the alarm could not fire regardless of how
 # long CPU stayed pegged at 100%. Found by running scripts/stress_test.sh and
 # checking the alarm history rather than trusting the OK state: sustained,
 # verified 100% CPU for 6 minutes produced no alarm and no history entry.
@@ -50,7 +50,7 @@ resource "aws_sns_topic_subscription" "email" {
 # period = 300 matches the metric's actual resolution: one datapoint, one
 # period. A 5-minute average above 80% already represents 5 minutes of
 # sustained load, which is the same "not a spike" intent the original 5 x
-# 60s design was going for — just aligned to data that actually exists.
+# 60s design was going for - just aligned to data that actually exists.
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "${var.project_name}-cpu-high"
   alarm_description   = "CPU utilization exceeded 80% averaged over 5 minutes"
@@ -67,7 +67,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
     InstanceId = var.instance_id
   }
 
-  # Notify on BOTH alarm and recovery — so you know when the issue resolved
+  # Notify on BOTH alarm and recovery - so you know when the issue resolved
   alarm_actions = [aws_sns_topic.alerts.arn]
   ok_actions    = [aws_sns_topic.alerts.arn]
 
@@ -80,7 +80,7 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 # Catches issues that are AWS's fault (hardware failure, loss of network connectivity,
 # host software issues). If this fires, the instance is effectively dead.
 # "treat_missing_data = breaching" here because missing data likely means the
-# instance is unreachable — which is exactly the problem we want to catch.
+# instance is unreachable - which is exactly the problem we want to catch.
 resource "aws_cloudwatch_metric_alarm" "status_check" {
   alarm_name          = "${var.project_name}-status-check-failed"
   alarm_description   = "Instance status check failed"
@@ -89,7 +89,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check" {
   metric_name         = "StatusCheckFailed"
   namespace           = "AWS/EC2"
   period              = 60
-  statistic           = "Maximum" # Maximum — if ANY check failed in the period, catch it
+  statistic           = "Maximum" # Maximum - if ANY check failed in the period, catch it
   threshold           = 0         # >0 means at least one check failed
   treat_missing_data  = "breaching"
 
@@ -97,7 +97,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check" {
     InstanceId = var.instance_id
   }
 
-  # No ok_actions here — if the instance recovers, you'll see it in the dashboard.
+  # No ok_actions here - if the instance recovers, you'll see it in the dashboard.
   # Status check failures usually require manual intervention anyway.
   alarm_actions = [aws_sns_topic.alerts.arn]
 
@@ -111,7 +111,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check" {
 # If the CloudWatch Agent creates them, they default to "never expire" which gets expensive.
 resource "aws_cloudwatch_log_group" "app_logs" {
   name              = "/homelab/app"
-  retention_in_days = 14 # 2 weeks is plenty for a homelab — keeps costs near zero
+  retention_in_days = 14 # 2 weeks is plenty for a homelab - keeps costs near zero
 
   tags = {
     Project = var.project_name
@@ -151,7 +151,7 @@ resource "aws_cloudwatch_dashboard" "main" {
           metrics = [
             ["AWS/EC2", "CPUUtilization", "InstanceId", var.instance_id]
           ]
-          period = 300 # 5-minute aggregation — smooths out short spikes
+          period = 300 # 5-minute aggregation - smooths out short spikes
           stat   = "Average"
           region = var.aws_region
           title  = "CPU Utilization"
@@ -165,7 +165,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         height = 6
         properties = {
           metrics = [
-            # CWAgent namespace — these metrics only appear after the agent is running
+            # CWAgent namespace - these metrics only appear after the agent is running
             ["CWAgent", "mem_used_percent", "InstanceId", var.instance_id]
           ]
           period = 300

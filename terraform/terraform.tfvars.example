@@ -1,11 +1,11 @@
 # Copy this to terraform.tfvars and fill in your values.
-# terraform.tfvars is gitignored — do not commit it.
+# terraform.tfvars is gitignored - do not commit it.
 
 aws_region = "us-east-1"
 
 # Named profile from ~/.aws/credentials, backed by an IAM user access key.
 # Leave as "" to use the default credential chain. Note that credentials cached
-# by `aws login` are NOT readable by Terraform — see docs/SETUP_NOTES.md.
+# by `aws login` are NOT readable by Terraform - see docs/SETUP_NOTES.md.
 aws_profile = "terraform-homelab"
 
 # The public half of a key you generated: ssh-keygen -t ed25519 -f ~/.ssh/homelab
